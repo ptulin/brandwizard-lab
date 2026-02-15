@@ -61,13 +61,17 @@ export default function LabPage() {
       } else {
         url.searchParams.set("view", v);
       }
-      router.replace(url.pathname + url.search, { scroll: false });
+      const newUrl = url.pathname + url.search;
+      window.history.replaceState(null, "", newUrl);
+      router.replace(newUrl, { scroll: false });
     },
     [router]
   );
 
   useEffect(() => {
-    const v = searchParams.get("view");
+    const v = typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("view")
+      : searchParams.get("view");
     if (v === "storage" || v === "mail" || v === "summary" || v === "prototype") setView(v);
   }, [searchParams]);
 
