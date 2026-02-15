@@ -308,13 +308,14 @@ export default function LabPage() {
         formData.set("authorDisplayName", name);
         formData.set("authorNameNorm", name.trim().toLowerCase().replace(/\s+/g, " "));
         const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const json = (await res.json().catch(() => ({}))) as { summary?: string; error?: string };
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error((err as { error?: string }).error ?? res.statusText);
+          throw new Error(json.error ?? res.statusText ?? "Upload failed");
         }
-        const json = (await res.json()) as { summary?: string };
-        setStatus(json.summary ?? `Attached: ${file.name} — open Storage to view`);
-        setTimeout(() => setStatus(null), 5000);
+        const msg = json.summary ?? `Attached: ${file.name} — open Storage to view`;
+        setStatus(msg);
+        setError(null);
+        setTimeout(() => setStatus(null), 6000);
         loadEntries();
         loadUploads();
       } catch (err) {
@@ -447,9 +448,9 @@ export default function LabPage() {
         )}
       </header>
       {(error || status) && (
-        <div className="shrink-0 px-4 py-2 border-b border-[var(--border)]">
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          {status && !error && <p className="text-sm text-gray-600">{status}</p>}
+        <div className="shrink-0 px-4 py-2.5 border-b border-[var(--border)] bg-gray-50">
+          {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+          {status && !error && <p className="text-sm font-medium text-green-700">{status}</p>}
         </div>
       )}
 
@@ -526,7 +527,7 @@ export default function LabPage() {
             />
           )}
 
-          {view === "main" && (
+          {(view === "main" || view === "storage") && (
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
               <div className="flex-1 min-h-0 overflow-auto">
                 <Thread entries={entries} />

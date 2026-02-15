@@ -49,10 +49,9 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ ...entry, summary });
   } catch (e) {
+    const err = e as { message?: string; error?: string };
+    const msg = err?.message ?? err?.error ?? (typeof e === "string" ? e : "Upload failed");
     console.error("Upload error:", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Upload failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
