@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   fetchEntries,
   postEntry,
@@ -12,7 +13,9 @@ import {
 import { buildHeuristicSummary } from "@/lib/summary";
 import { buildPrototypeFromForm, formatPromptForCopy } from "@/lib/prototype";
 import { parseInput } from "@/lib/parse";
+import { getSupabaseClientSafe } from "@/lib/supabase/client";
 import type { Entry, QueuedMessage, SessionSummary, PrototypePrompt } from "@/types";
+import type { User } from "@supabase/supabase-js";
 
 const NAME_KEY = "bw-lab-name";
 const ONBOARDING_TEXT = `Hello — I'm BW (BrandWizard). Type your name to begin.`;
@@ -38,12 +41,31 @@ export default function LabPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ title: string; link: string; snippet: string }[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const loadName = useCallback(() => {
     if (typeof window === "undefined") return;
     const stored = localStorage.getItem(NAME_KEY);
-    if (stored) setName(stored);
+    if (stored) {
+      setName(stored);
+      return;
+    }
+    if (authUser?.email) {
+      setName(authUser.email);
+      localStorage.setItem(NAME_KEY, authUser.email);
+    }
+  }, [authUser?.email]);
+
+  useEffect(() => {
+    const supabase = getSupabaseClientSafe();
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data: { user } }) => setAuthUser(user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const loadEntries = useCallback(async () => {
@@ -58,7 +80,16 @@ export default function LabPage() {
 
   useEffect(() => {
     loadName();
-  }, [loadName]);
+  }, [loadName, authUser?.email]);
+
+  const handleSignOut = useCallback(async () => {
+    const supabase = getSupabaseClientSafe();
+    if (supabase) {
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    }
+  }, [router]);
 
   useEffect(() => {
     if (name) loadEntries();
@@ -307,6 +338,15 @@ export default function LabPage() {
               Cancel
             </button>
           </div>
+        )}
+        {authUser && (
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="text-xs text-zinc-500 hover:text-zinc-300 border border-[var(--border)] px-2 py-1 rounded"
+          >
+            Sign out
+          </button>
         )}
       </header>
       {(error || status) && (

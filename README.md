@@ -61,6 +61,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 Without these env vars, the app falls back to in-memory storage (single server instance only).
 
+**Auth (when Supabase is configured):** Sign up and sign in use Supabase Auth (email/password). When both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set, the app requires sign-in: unauthenticated users are redirected to `/login`. Sign up is at `/signup`. After sign-in, your email is used as the default display name in the lab (you can change it via Edit). Sign out is in the header. When Supabase env vars are not set, the app works without auth (name-only identity).
+
 ## Features (MVP)
 
 - **Onboarding:** Type your name to begin; stored in `localStorage` and participants list.
