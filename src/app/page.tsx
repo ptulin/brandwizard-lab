@@ -312,8 +312,9 @@ export default function LabPage() {
           const err = await res.json().catch(() => ({}));
           throw new Error((err as { error?: string }).error ?? res.statusText);
         }
-        setStatus("File attached — open Storage to view");
-        setTimeout(() => setStatus(null), 4000);
+        const json = (await res.json()) as { summary?: string };
+        setStatus(json.summary ?? `Attached: ${file.name} — open Storage to view`);
+        setTimeout(() => setStatus(null), 5000);
         loadEntries();
         loadUploads();
       } catch (err) {
@@ -1084,8 +1085,8 @@ function StoragePanel({
   );
 
   return (
-    <div className="fixed inset-0 z-10 bg-black/40 flex flex-col items-center p-6">
-      <div className="max-w-2xl w-full flex flex-col max-h-full rounded-xl border-2 border-[var(--border)] bg-white shadow-xl p-4">
+    <div className="fixed inset-0 z-10 bg-black/25 flex flex-col items-center justify-center p-4">
+      <div className="max-w-2xl w-full flex flex-col max-h-[85vh] rounded-xl border-2 border-[var(--border)] bg-white shadow-xl p-4">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="text-lg font-semibold text-[var(--burgundy)]">
             Storage — docs, links, screenshots

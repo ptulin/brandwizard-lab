@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import * as db from "@/lib/db";
+import { summarizeFile } from "@/lib/file-summary";
 import type { EntryType } from "@/types";
-
-const BUCKET = "lab-files";
 
 export async function POST(request: Request) {
   if (!db.hasSupabase()) {
@@ -44,7 +43,11 @@ export async function POST(request: Request) {
     } catch (uploadRowErr) {
       console.error("Upload row (storage list) insert failed:", uploadRowErr);
     }
-    return NextResponse.json(entry);
+    const summary = await summarizeFile(file, filename);
+    if (summary) {
+      await db.addEntry("BW", "bw", summary, "note");
+    }
+    return NextResponse.json({ ...entry, summary });
   } catch (e) {
     console.error("Upload error:", e);
     return NextResponse.json(
