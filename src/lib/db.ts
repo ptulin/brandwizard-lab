@@ -1,7 +1,23 @@
-import { getSupabase } from "@/lib/supabase-server";
+import { getSupabase, getSupabaseAdmin } from "@/lib/supabase-server";
 import type { Entry, EntryType, QueuedMessage, Participant, Upload, UploadKind } from "@/types";
 
 const BUCKET = "lab-files";
+
+function getStorageClient() {
+  const admin = getSupabaseAdmin();
+  return admin ?? getSupabase();
+}
+
+async function ensureStorageBucket() {
+  const admin = getSupabaseAdmin();
+  if (!admin) return;
+  const { error } = await admin.storage.createBucket(BUCKET, { public: true });
+  if (error) {
+    const msg = (error as { message?: string }).message ?? "";
+    if (/already exists|BucketAlreadyExists/i.test(msg)) return;
+    console.error("Storage bucket create:", error);
+  }
+}
 
 function norm(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
@@ -161,7 +177,8 @@ export async function uploadFile(
   file: File | Blob,
   filename: string
 ): Promise<{ url: string; filename: string }> {
-  const supabase = getSupabase();
+  await ensureStorageBucket();
+  const supabase = getStorageClient();
   const safeName = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
   const path = `${authorNameNorm}/${Date.now()}-${safeName}`;
   const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
@@ -234,32 +251,49 @@ export async function getUploads(uploaderNameNorm?: string): Promise<Upload[]> {
 
 /** List files directly from Storage bucket (fallback when uploads/entries are empty). */
 export async function listStorageBucketFiles(): Promise<Upload[]> {
-  const supabase = getSupabase();
+  await ensureStorageBucket();
+  const supabase = getStorageClient();
   const result: Upload[] = [];
-  const { data: folders } = await supabase.storage.from(BUCKET).list("", { limit: 100 });
-  for (const folder of folders ?? []) {
-    if (folder.name === ".emptyFolderPlaceholder" || !folder.id) continue;
-    const uploaderNameNorm = folder.name;
-    const uploaderDisplayName = folder.name;
-    const { data: files } = await supabase.storage.from(BUCKET).list(folder.name, { limit: 100 });
-    for (const file of files ?? []) {
-      if (!file.name || file.id === undefined) continue;
-      const path = `${folder.name}/${file.name}`;
-      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      const url = urlData.publicUrl;
-      const match = file.name.match(/^\d+-(.+)$/);
-      const filename = match ? match[1] : file.name;
-      const kind = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(filename) ? "screenshot" : "file";
+  const { data: topLevel, error } = await supabase.storage.from(BUCKET).list("", { limit: 200 });
+  if (error) {
+    console.error("Storage list error:", error);
+    return result;
+  }
+  for (const item of topLevel ?? []) {
+    if (!item.name || item.name.startsWith(".")) continue;
+    const { data: files } = await supabase.storage.from(BUCKET).list(item.name, { limit: 100 });
+    if (files && files.length > 0) {
+      for (const file of files) {
+        if (!file.name || file.name.startsWith(".")) continue;
+        const path = `${item.name}/${file.name}`;
+        const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        const match = file.name.match(/^\d+-(.+)$/);
+        const filename = match ? match[1] : file.name;
+        const kind = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(filename) ? "screenshot" : "file";
+        result.push({
+          id: `storage-${path}`,
+          uploaderDisplayName: item.name,
+          uploaderNameNorm: item.name,
+          kind,
+          url: urlData.publicUrl,
+          title: null,
+          filename,
+          entryId: null,
+          createdAt: file.updated_at ?? new Date().toISOString(),
+        });
+      }
+    } else if (/\.\w+$/.test(item.name)) {
+      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(item.name);
       result.push({
-        id: `storage-${path}`,
-        uploaderDisplayName,
-        uploaderNameNorm,
-        kind,
-        url,
+        id: `storage-${item.name}`,
+        uploaderDisplayName: "unknown",
+        uploaderNameNorm: "unknown",
+        kind: "file",
+        url: urlData.publicUrl,
         title: null,
-        filename,
+        filename: item.name,
         entryId: null,
-        createdAt: file.updated_at ?? new Date().toISOString(),
+        createdAt: item.updated_at ?? new Date().toISOString(),
       });
     }
   }

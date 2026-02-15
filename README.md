@@ -31,7 +31,7 @@ Open [http://localhost:3000](http://localhost:3000).
 2. In [Vercel](https://vercel.com): **Add New Project** → Import the `brandwizard-lab` repo (or the repo you created).
 3. Root directory: leave default or set to `brandwizard-lab` if the app lives in that subfolder.
 4. Build command: `npm run build` (default). Output directory: `.next` (default).
-5. Add env vars in Vercel if you use Supabase (see below).
+5. Add env vars in Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (see Configure Supabase).
 6. Deploy. Every push to the default branch will auto-deploy.
 
 ## Conversation: free LLM (optional)
@@ -49,15 +49,17 @@ If `GROQ_API_KEY` is not set, the app works as before (no BW replies).
 For real collaboration (shared thread and mail across users), use Supabase:
 
 1. Create a project at [supabase.com](https://supabase.com) (free tier).
-2. In **SQL Editor**, run the schema in `supabase/schema.sql`.
-3. In **Storage**, create a **public** bucket named `lab-files` (for file uploads).
-4. Copy **Project URL** and **anon public** key from **Settings → API**.
+2. In **SQL Editor**, run the full script in `supabase/RUN_THIS_IN_SQL_EDITOR.sql` (creates tables and uploads).
+4. Copy **Project URL**, **anon** key, and **service_role** key from **Settings → API**.
 5. In project root, create `.env.local` and set:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
+
+The service role key (Settings → API → service_role) enables Storage: the app auto-creates the `lab-files` bucket on first upload. Without it, file uploads won't work.
 
 Without these env vars, the app falls back to in-memory storage (single server instance only).
 

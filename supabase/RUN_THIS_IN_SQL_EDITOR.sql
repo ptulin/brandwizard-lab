@@ -30,6 +30,9 @@ create table if not exists participants (
 alter table entries enable row level security;
 alter table messages enable row level security;
 alter table participants enable row level security;
+drop policy if exists "entries all" on entries;
+drop policy if exists "messages all" on messages;
+drop policy if exists "participants all" on participants;
 create policy "entries all" on entries for all using (true) with check (true);
 create policy "messages all" on messages for all using (true) with check (true);
 create policy "participants all" on participants for all using (true) with check (true);
@@ -49,4 +52,5 @@ create table if not exists uploads (
 create index if not exists idx_uploads_created_at on uploads(created_at desc);
 create index if not exists idx_uploads_uploader on uploads(uploader_name_norm);
 alter table uploads enable row level security;
+drop policy if exists "uploads all" on uploads;
 create policy "uploads all" on uploads for all using (true) with check (true);
