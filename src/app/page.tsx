@@ -386,7 +386,7 @@ export default function LabPage() {
   const hasName = Boolean(name?.trim());
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col">
+    <div className="h-screen bg-white text-black flex flex-col overflow-hidden">
       <header className="border-b border-[var(--border)] px-4 py-3 flex items-center justify-between shrink-0 flex-wrap gap-2">
         <h1 className="text-lg font-semibold text-burgundy-light">
           BrandWizard Lab
@@ -414,7 +414,7 @@ export default function LabPage() {
               value={editNameValue}
               onChange={(e) => setEditNameValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSaveEditName()}
-              className="w-32 px-2 py-1 rounded bg-gray-50 border border-[var(--border)] text-sm text-white"
+              className="w-32 px-2 py-1 rounded bg-gray-50 border border-[var(--border)] text-sm text-black"
               autoFocus
             />
             <button
@@ -458,7 +458,7 @@ export default function LabPage() {
           placeholderText={ONBOARDING_TEXT}
         />
       ) : (
-        <>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           <ActionCards
             onContinue={() => {
               setViewWithUrl("main");
@@ -524,9 +524,10 @@ export default function LabPage() {
           )}
 
           {view === "main" && (
-            <>
-              <Thread entries={entries} />
-              {searchResults !== null && (
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-auto">
+                <Thread entries={entries} />
+                {searchResults !== null && (
                 <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] bg-gray-100">
                   <div className="max-w-3xl mx-auto">
                     <p className="text-xs text-gray-600 mb-2">Web search results</p>
@@ -554,7 +555,7 @@ export default function LabPage() {
                   </div>
                 </div>
               )}
-              <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] flex gap-2 items-center max-w-3xl mx-auto">
+                <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] flex gap-2 items-center max-w-3xl mx-auto">
                 <input
                   type="text"
                   value={searchQuery}
@@ -597,6 +598,8 @@ export default function LabPage() {
                   {addingLink ? "…" : "Add link"}
                 </button>
               </div>
+              </div>
+              <div className="shrink-0 border-t border-[var(--border)] bg-white">
               <InputArea
                 value={inputValue}
                 onChange={setInputValue}
@@ -613,12 +616,14 @@ export default function LabPage() {
                 onChange={handleFileUpload}
                 aria-hidden
               />
-            </>
+              <CommandsHint />
+              </div>
+            </div>
           )}
-        </>
+        </div>
       )}
 
-      <CommandsHint />
+      {hasName && view !== "main" && <CommandsHint />}
     </div>
   );
 }
