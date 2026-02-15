@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import * as data from "@/lib/data";
 
 export async function GET() {
-  const participants = store.getParticipants();
+  const participants = await data.getParticipants();
   return NextResponse.json(participants);
 }
 
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const participant = store.ensureParticipant(displayName);
+    const participant = await data.ensureParticipant(displayName);
     return NextResponse.json(participant);
   } catch (e) {
     return NextResponse.json(

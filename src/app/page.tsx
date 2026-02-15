@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchEntries,
   postEntry,
@@ -10,25 +10,35 @@ import {
   postMessage,
 } from "./actions";
 import { buildHeuristicSummary } from "@/lib/summary";
-import { buildPrototypePrompt, formatPromptForCopy } from "@/lib/prototype";
+import { buildPrototypeFromForm, formatPromptForCopy } from "@/lib/prototype";
 import { parseInput } from "@/lib/parse";
 import type { Entry, QueuedMessage, SessionSummary, PrototypePrompt } from "@/types";
 
 const NAME_KEY = "bw-lab-name";
 const ONBOARDING_TEXT = `Hello — I'm BW (BrandWizard). Type your name to begin.`;
+const POLL_INTERVAL_MS = 4000;
 
 export default function LabPage() {
   const [name, setName] = useState("");
   const [nameInput, setNameInput] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState("");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [view, setView] = useState<"main" | "summary" | "prototype" | "mail">("main");
   const [inbox, setInbox] = useState<QueuedMessage[]>([]);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
-  const [prototypeIdea, setPrototypeIdea] = useState("");
+  const [prototypeForm, setPrototypeForm] = useState<Partial<PrototypePrompt>>({});
   const [prototypeOutput, setPrototypeOutput] = useState<PrototypePrompt | null>(null);
   const [inputCollapsed, setInputCollapsed] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ title: string; link: string; snippet: string }[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadName = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -37,8 +47,13 @@ export default function LabPage() {
   }, []);
 
   const loadEntries = useCallback(async () => {
-    const list = await fetchEntries();
-    setEntries(list);
+    try {
+      const list = await fetchEntries();
+      setEntries(list);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load thread");
+    }
   }, []);
 
   useEffect(() => {
@@ -47,23 +62,47 @@ export default function LabPage() {
 
   useEffect(() => {
     if (name) loadEntries();
-  }, [name, loadName, loadEntries]);
+  }, [name, loadEntries]);
+
+  useEffect(() => {
+    if (!name || view !== "main") return;
+    const id = setInterval(loadEntries, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [name, view, loadEntries]);
 
   const handleSubmitName = useCallback(async () => {
     const displayName = nameInput.trim();
     if (!displayName) return;
+    setError(null);
     try {
       await postParticipant(displayName);
       localStorage.setItem(NAME_KEY, displayName);
       setName(displayName);
       setNameInput("");
     } catch (e) {
-      console.error(e);
+      setError(e instanceof Error ? e.message : "Failed to save name");
     }
   }, [nameInput]);
 
+  const handleSaveEditName = useCallback(async () => {
+    const displayName = editNameValue.trim();
+    if (!displayName) return;
+    setError(null);
+    try {
+      await postParticipant(displayName);
+      localStorage.setItem(NAME_KEY, displayName);
+      setName(displayName);
+      setEditNameValue("");
+      setEditingName(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update name");
+    }
+  }, [editNameValue]);
+
   const handleSubmitInput = useCallback(async () => {
     if (!name || !inputValue.trim()) return;
+    setError(null);
+    setStatus(null);
 
     const parsed = parseInput(inputValue);
 
@@ -71,13 +110,14 @@ export default function LabPage() {
       try {
         await postMessage(parsed.toDisplayName, name, parsed.messageBody);
         setInputValue("");
+        setStatus(`Queued for ${parsed.toDisplayName}`);
+        setTimeout(() => setStatus(null), 3000);
       } catch (e) {
-        console.error(e);
+        setError(e instanceof Error ? e.message : "Failed to queue message");
       }
       return;
     }
 
-    // Commands
     const lower = inputValue.trim().toLowerCase();
     if (lower === "@onboarding") {
       setView("main");
@@ -91,7 +131,7 @@ export default function LabPage() {
     }
     if (lower === "@prototype") {
       setView("prototype");
-      setPrototypeIdea("");
+      setPrototypeForm({});
       setPrototypeOutput(null);
       setInputValue("");
       return;
@@ -103,27 +143,102 @@ export default function LabPage() {
       return;
     }
 
-    // Normal note
     const body = parsed.body ?? inputValue.trim();
     const type = parsed.entryType ?? "note";
     try {
       const nameNorm = name.trim().toLowerCase().replace(/\s+/g, " ");
       await postEntry(name, nameNorm, body, type);
       setInputValue("");
+      setStatus("Saved");
+      setTimeout(() => setStatus(null), 2000);
       loadEntries();
     } catch (e) {
-      console.error(e);
+      setError(e instanceof Error ? e.message : "Failed to save");
     }
   }, [name, inputValue, entries, loadEntries]);
 
   const handleCheckMail = useCallback(async () => {
     if (!name) return;
-    const nameNorm = name.trim().toLowerCase().replace(/\s+/g, " ");
-    const list = await fetchUndeliveredMessages(nameNorm);
-    setInbox(list);
-    setView("mail");
-    if (list.length) await deliverMessages(nameNorm);
+    setError(null);
+    setStatus(null);
+    try {
+      const nameNorm = name.trim().toLowerCase().replace(/\s+/g, " ");
+      const list = await fetchUndeliveredMessages(nameNorm);
+      setInbox(list);
+      setView("mail");
+      if (list.length) await deliverMessages(nameNorm);
+      if (list.length) setStatus(`${list.length} delivered`);
+      else setStatus("No new messages");
+      setTimeout(() => setStatus(null), 2500);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load mail");
+    }
   }, [name]);
+
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    setSearchResults(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      const data = (await res.json()) as {
+        results?: Array<{ title: string; link: string; snippet: string }>;
+        message?: string;
+      };
+      setSearchResults(data.results ?? []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [searchQuery]);
+
+  const handleAddSearchToThread = useCallback(async () => {
+    if (!searchResults?.length || !name) return;
+    const nameNorm = name.trim().toLowerCase().replace(/\s+/g, " ");
+    const body = `[Search: ${searchQuery}]\n${searchResults.map((r) => `${r.title}: ${r.link}\n${r.snippet}`).join("\n\n")}`;
+    setError(null);
+    try {
+      await postEntry(name, nameNorm, body, "note");
+      setStatus("Search results added to thread");
+      setTimeout(() => setStatus(null), 2000);
+      setSearchResults(null);
+      setSearchQuery("");
+      loadEntries();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add to thread");
+    }
+  }, [searchResults, searchQuery, name, loadEntries]);
+
+  const handleFileUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !name) return;
+      setUploading(true);
+      setError(null);
+      try {
+        const formData = new FormData();
+        formData.set("file", file);
+        formData.set("authorDisplayName", name);
+        formData.set("authorNameNorm", name.trim().toLowerCase().replace(/\s+/g, " "));
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error ?? res.statusText);
+        }
+        setStatus("File attached");
+        setTimeout(() => setStatus(null), 2000);
+        loadEntries();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setUploading(false);
+        e.target.value = "";
+      }
+    },
+    [name, loadEntries]
+  );
 
   const handleShowSummary = useCallback(() => {
     setSummary(buildHeuristicSummary(entries));
@@ -131,8 +246,8 @@ export default function LabPage() {
   }, [entries]);
 
   const handlePrototypeGenerate = useCallback(() => {
-    setPrototypeOutput(buildPrototypePrompt(prototypeIdea));
-  }, [prototypeIdea]);
+    setPrototypeOutput(buildPrototypeFromForm(prototypeForm));
+  }, [prototypeForm]);
 
   const handleCopyPrompt = useCallback(() => {
     if (!prototypeOutput) return;
@@ -147,16 +262,59 @@ export default function LabPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
-      <header className="border-b border-[var(--border)] px-4 py-3 flex items-center justify-between shrink-0">
+      <header className="border-b border-[var(--border)] px-4 py-3 flex items-center justify-between shrink-0 flex-wrap gap-2">
         <h1 className="text-lg font-semibold text-burgundy-light">
           BrandWizard Lab
         </h1>
-        {hasName && (
-          <span className="text-sm text-zinc-400">
-            {name}
-          </span>
+        {hasName && !editingName && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-zinc-400">{name}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setEditNameValue(name);
+                setEditingName(true);
+              }}
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+              aria-label="Edit name"
+            >
+              Edit
+            </button>
+          </div>
+        )}
+        {hasName && editingName && (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={editNameValue}
+              onChange={(e) => setEditNameValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveEditName()}
+              className="w-32 px-2 py-1 rounded bg-black border border-[var(--border)] text-sm text-white"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={handleSaveEditName}
+              className="text-xs text-[var(--burgundy-light)] hover:underline"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingName(false)}
+              className="text-xs text-zinc-500 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
         )}
       </header>
+      {(error || status) && (
+        <div className="shrink-0 px-4 py-2 border-b border-[var(--border)]">
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {status && !error && <p className="text-sm text-zinc-400">{status}</p>}
+        </div>
+      )}
 
       {!hasName ? (
         <Onboarding
@@ -175,7 +333,7 @@ export default function LabPage() {
             onSummary={handleShowSummary}
             onPrototype={() => {
               setView("prototype");
-              setPrototypeIdea("");
+              setPrototypeForm({});
               setPrototypeOutput(null);
             }}
             onCheckMail={handleCheckMail}
@@ -186,8 +344,8 @@ export default function LabPage() {
           )}
           {view === "prototype" && (
             <PrototypePanel
-              idea={prototypeIdea}
-              onIdeaChange={setPrototypeIdea}
+              form={prototypeForm}
+              onFormChange={setPrototypeForm}
               output={prototypeOutput}
               onGenerate={handlePrototypeGenerate}
               onCopy={handleCopyPrompt}
@@ -205,12 +363,67 @@ export default function LabPage() {
           {view === "main" && (
             <>
               <Thread entries={entries} />
+              {searchResults !== null && (
+                <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] bg-zinc-900/50">
+                  <div className="max-w-3xl mx-auto">
+                    <p className="text-xs text-zinc-500 mb-2">Web search results</p>
+                    {searchResults.length === 0 ? (
+                      <p className="text-sm text-zinc-500">No results or search not configured.</p>
+                    ) : (
+                      <>
+                        <ul className="text-sm text-zinc-300 space-y-1 mb-2 max-h-32 overflow-auto">
+                          {searchResults.map((r, i) => (
+                            <li key={i}>
+                              <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-[var(--burgundy-light)] hover:underline">{r.title}</a>
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          onClick={handleAddSearchToThread}
+                          className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-1 rounded"
+                        >
+                          Add to thread
+                        </button>
+                      </>
+                    )}
+                    <button type="button" onClick={() => setSearchResults(null)} className="text-xs text-zinc-500 ml-2">Close</button>
+                  </div>
+                </div>
+              )}
+              <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] flex gap-2 items-center max-w-3xl mx-auto">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder="Search web…"
+                  className="flex-1 px-3 py-1.5 rounded bg-black border border-[var(--border)] text-sm text-white placeholder:text-zinc-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  disabled={searching || !searchQuery.trim()}
+                  className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-1.5 rounded disabled:opacity-50"
+                >
+                  {searching ? "…" : "Search"}
+                </button>
+              </div>
               <InputArea
                 value={inputValue}
                 onChange={setInputValue}
                 onSubmit={handleSubmitInput}
                 collapsed={inputCollapsed}
                 onCollapsedChange={setInputCollapsed}
+                onUploadClick={() => fileInputRef.current?.click()}
+                uploading={uploading}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileUpload}
+                aria-hidden
               />
             </>
           )}
@@ -318,10 +531,33 @@ function Thread({ entries }: { entries: Entry[] }) {
               {new Date(e.createdAt).toLocaleString()}
             </span>
           </div>
-          <p className="text-zinc-200 whitespace-pre-wrap text-sm">{e.body}</p>
+          {e.type === "file" ? (
+            <FileEntryBody body={e.body} />
+          ) : (
+            <p className="text-zinc-200 whitespace-pre-wrap text-sm">{e.body}</p>
+          )}
         </div>
       ))}
     </main>
+  );
+}
+
+function FileEntryBody({ body }: { body: string }) {
+  const [filename, url] = body.split("\n");
+  const href = url?.trim() || body;
+  const label = filename?.trim() || "File";
+  return (
+    <div className="text-sm">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[var(--burgundy-light)] hover:underline"
+      >
+        {label}
+      </a>
+      <span className="text-zinc-500 ml-2">(file)</span>
+    </div>
   );
 }
 
@@ -331,12 +567,16 @@ function InputArea({
   onSubmit,
   collapsed,
   onCollapsedChange,
+  onUploadClick,
+  uploading,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
   collapsed: boolean;
   onCollapsedChange: (c: boolean) => void;
+  onUploadClick: () => void;
+  uploading: boolean;
 }) {
   return (
     <div className="shrink-0 border-t border-[var(--border)] bg-black/80 p-4">
@@ -364,13 +604,21 @@ function InputArea({
               rows={3}
               className="w-full px-4 py-3 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] resize-none"
             />
-            <div className="flex justify-between items-center mt-2">
+            <div className="flex justify-between items-center mt-2 gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => onCollapsedChange(true)}
                 className="text-xs text-zinc-500 md:hidden"
               >
                 Collapse
+              </button>
+              <button
+                type="button"
+                onClick={onUploadClick}
+                disabled={uploading}
+                className="text-xs text-zinc-400 hover:text-zinc-200 border border-[var(--border)] px-2 py-1 rounded disabled:opacity-50"
+              >
+                {uploading ? "Uploading…" : "Attach file"}
               </button>
               <button
                 type="button"
@@ -439,40 +687,71 @@ function SummaryPanel({
   );
 }
 
+const PROTOTYPE_FIELDS: { key: keyof PrototypePrompt; label: string; rows?: number }[] = [
+  { key: "targetUser", label: "Target user" },
+  { key: "problem", label: "Core problem", rows: 3 },
+  { key: "scope", label: "MVP scope" },
+  { key: "constraints", label: "Constraints" },
+  { key: "inputsOutputs", label: "Inputs / Outputs" },
+  { key: "successMetric", label: "Success metric" },
+  { key: "dataModel", label: "Data model", rows: 2 },
+  { key: "screens", label: "Screens" },
+  { key: "acceptanceCriteria", label: "Acceptance criteria", rows: 2 },
+  { key: "implementationPlan", label: "Implementation plan", rows: 2 },
+];
+
 function PrototypePanel({
-  idea,
-  onIdeaChange,
+  form,
+  onFormChange,
   output,
   onGenerate,
   onCopy,
   copyFeedback,
   onClose,
 }: {
-  idea: string;
-  onIdeaChange: (v: string) => void;
+  form: Partial<PrototypePrompt>;
+  onFormChange: (f: Partial<PrototypePrompt>) => void;
   output: PrototypePrompt | null;
   onGenerate: () => void;
   onCopy: () => void;
   copyFeedback: boolean;
   onClose: () => void;
 }) {
+  const update = (key: keyof PrototypePrompt, value: string) => {
+    onFormChange({ ...form, [key]: value });
+  };
   return (
     <div className="fixed inset-0 z-10 bg-black/90 overflow-auto p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         <h2 className="text-lg font-semibold text-[var(--burgundy-light)]">
           Prototype mode
         </h2>
-        <div>
-          <label className="block text-sm text-zinc-500 mb-2">
-            Paste idea or select from thread
-          </label>
-          <textarea
-            value={idea}
-            onChange={(e) => onIdeaChange(e.target.value)}
-            placeholder="Describe the feature or idea..."
-            rows={4}
-            className="w-full px-4 py-3 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] resize-none"
-          />
+        <p className="text-sm text-zinc-500">
+          Fill in the fields below. Generate to build a copy-ready prompt.
+        </p>
+        <div className="space-y-4">
+          {PROTOTYPE_FIELDS.map(({ key, label, rows = 1 }) => (
+            <div key={key}>
+              <label className="block text-sm text-zinc-500 mb-1">{label}</label>
+              {rows > 1 ? (
+                <textarea
+                  value={form[key] ?? ""}
+                  onChange={(e) => update(key, e.target.value)}
+                  placeholder={label}
+                  rows={rows}
+                  className="w-full px-4 py-2 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] resize-none text-sm"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={form[key] ?? ""}
+                  onChange={(e) => update(key, e.target.value)}
+                  placeholder={label}
+                  className="w-full px-4 py-2 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] text-sm"
+                />
+              )}
+            </div>
+          ))}
         </div>
         <button
           type="button"

@@ -28,6 +28,7 @@ export function buildHeuristicSummary(entries: Entry[]): SessionSummary {
   const openQuestions: string[] = [];
 
   for (const e of slice) {
+    if (e.type === "file") continue;
     const line = e.body.trim();
     if (isDecision(e)) {
       const text = line.replace(DECISION_PREFIX, "").trim() || line;

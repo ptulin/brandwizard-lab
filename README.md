@@ -34,21 +34,32 @@ Open [http://localhost:3000](http://localhost:3000).
 5. Add env vars in Vercel if you use Supabase (see below).
 6. Deploy. Every push to the default branch will auto-deploy.
 
-## Configure Supabase (optional)
+## Conversation: free LLM (optional)
 
-MVP works with **in-memory storage** only. To persist data:
+BW can reply to questions in the thread. When a note is a **question** (type `question` or ends with `?`), the server calls a free LLM and appends a reply from **BW**.
+
+1. Get a free API key at [Groq Console](https://console.groq.com) (free tier, no credit card).
+2. Add to `.env.local`: `GROQ_API_KEY=your-key`
+3. In Vercel: Project → **Settings** → **Environment Variables** → add `GROQ_API_KEY` for Production/Preview.
+
+If `GROQ_API_KEY` is not set, the app works as before (no BW replies).
+
+## Configure Supabase (for shared thread, mail, file upload)
+
+For real collaboration (shared thread and mail across users), use Supabase:
 
 1. Create a project at [supabase.com](https://supabase.com) (free tier).
-2. In **SQL Editor**, run the schema (see `supabase/schema.sql` when added).
-3. Copy **Project URL** and **anon public** key from **Settings → API**.
-4. In project root, create `.env.local`:
+2. In **SQL Editor**, run the schema in `supabase/schema.sql`.
+3. In **Storage**, create a **public** bucket named `lab-files` (for file uploads).
+4. Copy **Project URL** and **anon public** key from **Settings → API**.
+5. In project root, create `.env.local` and set:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-5. When Supabase is wired in, the app will use these; until then, the app uses in-memory store.
+Without these env vars, the app falls back to in-memory storage (single server instance only).
 
 ## Features (MVP)
 

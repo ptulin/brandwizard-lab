@@ -1,4 +1,4 @@
-export type EntryType = "note" | "decision" | "question" | "action";
+export type EntryType = "note" | "decision" | "question" | "action" | "file";
 
 export interface Entry {
   id: string;
@@ -36,6 +36,8 @@ export interface PrototypePrompt {
   targetUser: string;
   scope: string;
   constraints: string;
+  inputsOutputs: string;
+  successMetric: string;
   dataModel: string;
   screens: string;
   acceptanceCriteria: string;

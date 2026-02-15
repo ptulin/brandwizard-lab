@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import * as data from "@/lib/data";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
       { status: 400 }
     );
   }
-  const messages = store.getUndeliveredFor(nameNorm);
+  const messages = await data.getUndeliveredFor(nameNorm);
   return NextResponse.json(messages);
 }
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const msg = store.queueMessage(
+    const msg = await data.queueMessage(
       toDisplayName,
       fromDisplayName,
       String(text)

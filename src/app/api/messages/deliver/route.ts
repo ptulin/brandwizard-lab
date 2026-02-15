@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import * as data from "@/lib/data";
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const delivered = store.deliverAllFor(nameNorm);
+    const delivered = await data.deliverAllFor(nameNorm);
     return NextResponse.json({ delivered });
   } catch (e) {
     return NextResponse.json(

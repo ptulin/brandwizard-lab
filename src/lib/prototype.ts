@@ -1,34 +1,58 @@
 import type { PrototypePrompt } from "@/types";
 
+const EMPTY = "(Not specified)";
+
 export function buildPrototypePrompt(idea: string): PrototypePrompt {
-  const lines = idea.trim().split(/\n/).filter(Boolean);
-  const text = lines.join("\n");
+  const text = idea.trim() || EMPTY;
   return {
-    problem: text || "(Describe the problem or idea)",
-    targetUser: "(Who is the primary user?)",
-    scope: "(In scope for MVP / Out of scope)",
-    constraints: "(Tech, time, compliance)",
-    dataModel: "(Key entities and relations)",
-    screens: "(List main screens/flows)",
-    acceptanceCriteria: "(User-visible criteria)",
-    implementationPlan: "(Phased steps)",
+    problem: text,
+    targetUser: EMPTY,
+    scope: EMPTY,
+    constraints: EMPTY,
+    inputsOutputs: EMPTY,
+    successMetric: EMPTY,
+    dataModel: EMPTY,
+    screens: EMPTY,
+    acceptanceCriteria: EMPTY,
+    implementationPlan: EMPTY,
+  };
+}
+
+export function buildPrototypeFromForm(f: Partial<PrototypePrompt>): PrototypePrompt {
+  return {
+    problem: f.problem?.trim() || EMPTY,
+    targetUser: f.targetUser?.trim() || EMPTY,
+    scope: f.scope?.trim() || EMPTY,
+    constraints: f.constraints?.trim() || EMPTY,
+    inputsOutputs: f.inputsOutputs?.trim() || EMPTY,
+    successMetric: f.successMetric?.trim() || EMPTY,
+    dataModel: f.dataModel?.trim() || EMPTY,
+    screens: f.screens?.trim() || EMPTY,
+    acceptanceCriteria: f.acceptanceCriteria?.trim() || EMPTY,
+    implementationPlan: f.implementationPlan?.trim() || EMPTY,
   };
 }
 
 export function formatPromptForCopy(p: PrototypePrompt): string {
-  return `# Prototype brief
-
-## Problem
-${p.problem}
+  return `# Prototype brief (build-ready, tool-agnostic)
 
 ## Target user
 ${p.targetUser}
 
-## Scope
+## Core problem
+${p.problem}
+
+## MVP scope
 ${p.scope}
 
 ## Constraints
 ${p.constraints}
+
+## Inputs / Outputs
+${p.inputsOutputs}
+
+## Success metric
+${p.successMetric}
 
 ## Data model
 ${p.dataModel}

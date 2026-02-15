@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import * as data from "@/lib/data";
 import type { EntryType } from "@/types";
 
 export async function GET() {
-  const entries = store.getEntries();
+  const entries = await data.getEntries();
   return NextResponse.json(entries);
 }
 
@@ -27,9 +27,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const validTypes: EntryType[] = ["note", "decision", "question", "action"];
+    const validTypes: EntryType[] = ["note", "decision", "question", "action", "file"];
     const entryType = validTypes.includes(type) ? type : "note";
-    const entry = store.addEntry(
+    const entry = await data.addEntry(
       authorDisplayName,
       authorNameNorm,
       String(text),
