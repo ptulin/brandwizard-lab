@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   fetchEntries,
   postEntry,
@@ -50,6 +50,26 @@ export default function LabPage() {
   const [addingLink, setAddingLink] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const setViewWithUrl = useCallback(
+    (v: "main" | "summary" | "prototype" | "mail" | "storage") => {
+      setView(v);
+      const url = new URL(window.location.href);
+      if (v === "main") {
+        url.searchParams.delete("view");
+      } else {
+        url.searchParams.set("view", v);
+      }
+      router.replace(url.pathname + url.search, { scroll: false });
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    const v = searchParams.get("view");
+    if (v === "storage" || v === "mail" || v === "summary" || v === "prototype") setView(v);
+  }, [searchParams]);
 
   const loadName = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -177,17 +197,17 @@ export default function LabPage() {
 
     const lower = inputValue.trim().toLowerCase();
     if (lower === "@onboarding") {
-      setView("main");
+      setViewWithUrl("main");
       setInputValue("");
       return;
     }
     if (lower === "@checkmail") {
-      setView("mail");
+      setViewWithUrl("mail");
       setInputValue("");
       return;
     }
     if (lower === "@prototype") {
-      setView("prototype");
+      setViewWithUrl("prototype");
       setPrototypeForm({});
       setPrototypeOutput(null);
       setInputValue("");
@@ -195,12 +215,12 @@ export default function LabPage() {
     }
     if (lower === "@summary") {
       setSummary(buildHeuristicSummary(entries));
-      setView("summary");
+      setViewWithUrl("summary");
       setInputValue("");
       return;
     }
     if (lower === "@storage") {
-      setView("storage");
+      setViewWithUrl("storage");
       loadUploads();
       setInputValue("");
       return;
@@ -228,7 +248,7 @@ export default function LabPage() {
       const nameNorm = name.trim().toLowerCase().replace(/\s+/g, " ");
       const list = await fetchUndeliveredMessages(nameNorm);
       setInbox(list);
-      setView("mail");
+      setViewWithUrl("mail");
       if (list.length) await deliverMessages(nameNorm);
       if (list.length) setStatus(`${list.length} delivered`);
       else setStatus("No new messages");
@@ -308,7 +328,7 @@ export default function LabPage() {
 
   const handleShowSummary = useCallback(() => {
     setSummary(buildHeuristicSummary(entries));
-    setView("summary");
+    setViewWithUrl("summary");
   }, [entries]);
 
   const handlePrototypeGenerate = useCallback(() => {
@@ -441,24 +461,24 @@ export default function LabPage() {
         <>
           <ActionCards
             onContinue={() => {
-              setView("main");
+              setViewWithUrl("main");
               setInputCollapsed(false);
             }}
             onSummary={handleShowSummary}
             onPrototype={() => {
-              setView("prototype");
+              setViewWithUrl("prototype");
               setPrototypeForm({});
               setPrototypeOutput(null);
             }}
             onCheckMail={handleCheckMail}
             onStorage={() => {
-              setView("storage");
+              setViewWithUrl("storage");
               loadUploads();
             }}
           />
 
           {view === "summary" && summary && (
-            <SummaryPanel summary={summary} onClose={() => setView("main")} />
+            <SummaryPanel summary={summary} onClose={() => setViewWithUrl("main")} />
           )}
           {view === "prototype" && (
             <PrototypePanel
@@ -468,13 +488,13 @@ export default function LabPage() {
               onGenerate={handlePrototypeGenerate}
               onCopy={handleCopyPrompt}
               copyFeedback={copyFeedback}
-              onClose={() => setView("main")}
+              onClose={() => setViewWithUrl("main")}
             />
           )}
           {view === "mail" && (
             <InboxPanel
               messages={inbox}
-              onClose={() => setView("main")}
+              onClose={() => setViewWithUrl("main")}
             />
           )}
           {view === "storage" && (
@@ -483,7 +503,7 @@ export default function LabPage() {
               filter={storageFilter}
               onFilterChange={setStorageFilter}
               currentNameNorm={name ? name.trim().toLowerCase().replace(/\s+/g, " ") : ""}
-              onClose={() => setView("main")}
+              onClose={() => setViewWithUrl("main")}
               onRefresh={loadUploads}
               onDelete={async (upload) => {
                 const res = await fetch("/api/uploads", {
