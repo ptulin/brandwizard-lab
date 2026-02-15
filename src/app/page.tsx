@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   fetchEntries,
   postEntry,
@@ -50,7 +50,6 @@ export default function LabPage() {
   const [addingLink, setAddingLink] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const setViewWithUrl = useCallback(
     (v: "main" | "summary" | "prototype" | "mail" | "storage") => {
@@ -69,11 +68,10 @@ export default function LabPage() {
   );
 
   useEffect(() => {
-    const v = typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("view")
-      : searchParams.get("view");
+    if (typeof window === "undefined") return;
+    const v = new URLSearchParams(window.location.search).get("view");
     if (v === "storage" || v === "mail" || v === "summary" || v === "prototype") setView(v);
-  }, [searchParams]);
+  }, []);
 
   const loadName = useCallback(() => {
     if (typeof window === "undefined") return;
