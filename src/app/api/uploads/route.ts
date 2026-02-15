@@ -61,6 +61,24 @@ export async function GET(request: Request) {
     if (uploader) {
       uploads = uploads.filter((u) => u.uploaderNameNorm === uploader);
     }
+    if (uploads.length === 0) {
+      try {
+        const bucketFiles = await db.listStorageBucketFiles();
+        const existingUrls = new Set(uploads.map((u) => u.url));
+        for (const f of bucketFiles) {
+          if (!existingUrls.has(f.url)) {
+            uploads.push(f);
+            existingUrls.add(f.url);
+          }
+        }
+        uploads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (uploader) {
+          uploads = uploads.filter((u) => u.uploaderNameNorm === uploader);
+        }
+      } catch (err) {
+        console.error("Storage bucket list error:", err);
+      }
+    }
     const debug = searchParams.get("debug") === "1" ? { entriesTotal: entries.length, fileEntryCount: fileEntries.length, uploadsCount: uploads.length } : undefined;
     return NextResponse.json(debug ? { uploads, debug } : { uploads });
   } catch (e) {

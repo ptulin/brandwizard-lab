@@ -232,6 +232,41 @@ export async function getUploads(uploaderNameNorm?: string): Promise<Upload[]> {
   }));
 }
 
+/** List files directly from Storage bucket (fallback when uploads/entries are empty). */
+export async function listStorageBucketFiles(): Promise<Upload[]> {
+  const supabase = getSupabase();
+  const result: Upload[] = [];
+  const { data: folders } = await supabase.storage.from(BUCKET).list("", { limit: 100 });
+  for (const folder of folders ?? []) {
+    if (folder.name === ".emptyFolderPlaceholder" || !folder.id) continue;
+    const uploaderNameNorm = folder.name;
+    const uploaderDisplayName = folder.name;
+    const { data: files } = await supabase.storage.from(BUCKET).list(folder.name, { limit: 100 });
+    for (const file of files ?? []) {
+      if (!file.name || file.id === undefined) continue;
+      const path = `${folder.name}/${file.name}`;
+      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const url = urlData.publicUrl;
+      const match = file.name.match(/^\d+-(.+)$/);
+      const filename = match ? match[1] : file.name;
+      const kind = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(filename) ? "screenshot" : "file";
+      result.push({
+        id: `storage-${path}`,
+        uploaderDisplayName,
+        uploaderNameNorm,
+        kind,
+        url,
+        title: null,
+        filename,
+        entryId: null,
+        createdAt: file.updated_at ?? new Date().toISOString(),
+      });
+    }
+  }
+  result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return result;
+}
+
 /** Backfill uploads table from existing file entries so Storage shows everything. */
 export async function backfillUploadsFromFileEntries(): Promise<number> {
   const supabase = getSupabase();

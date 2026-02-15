@@ -33,17 +33,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm border border-[var(--border)] rounded-xl bg-zinc-900/50 p-6">
         <h1 className="text-xl font-semibold text-[var(--burgundy-light)] mb-2">
           Sign in
         </h1>
-        <p className="text-sm text-zinc-500 mb-6">
+        <p className="text-sm text-gray-600 mb-6">
           <Link href="/" className="hover:underline">BrandWizard Lab</Link>
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm text-zinc-400 mb-1">
+            <label htmlFor="email" className="block text-sm text-gray-600 mb-1">
               Email
             </label>
             <input
@@ -53,12 +53,12 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full px-4 py-3 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)]"
+              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-[var(--border)] text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)]"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm text-zinc-400 mb-1">
+            <label htmlFor="password" className="block text-sm text-gray-600 mb-1">
               Password
             </label>
             <input
@@ -68,7 +68,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full px-4 py-3 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)]"
+              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-[var(--border)] text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)]"
               placeholder="••••••••"
             />
           </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-zinc-500">
+        <p className="mt-6 text-center text-sm text-gray-600">
           No account?{" "}
           <Link href="/signup" className="text-[var(--burgundy-light)] hover:underline">
             Sign up

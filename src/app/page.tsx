@@ -366,21 +366,21 @@ export default function LabPage() {
   const hasName = Boolean(name?.trim());
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <div className="min-h-screen bg-white text-black flex flex-col">
       <header className="border-b border-[var(--border)] px-4 py-3 flex items-center justify-between shrink-0 flex-wrap gap-2">
         <h1 className="text-lg font-semibold text-burgundy-light">
           BrandWizard Lab
         </h1>
         {hasName && !editingName && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-zinc-400">{name}</span>
+            <span className="text-sm text-gray-600">{name}</span>
             <button
               type="button"
               onClick={() => {
                 setEditNameValue(name);
                 setEditingName(true);
               }}
-              className="text-xs text-zinc-500 hover:text-zinc-300"
+              className="text-xs text-gray-600 hover:text-gray-700"
               aria-label="Edit name"
             >
               Edit
@@ -394,7 +394,7 @@ export default function LabPage() {
               value={editNameValue}
               onChange={(e) => setEditNameValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSaveEditName()}
-              className="w-32 px-2 py-1 rounded bg-black border border-[var(--border)] text-sm text-white"
+              className="w-32 px-2 py-1 rounded bg-gray-50 border border-[var(--border)] text-sm text-white"
               autoFocus
             />
             <button
@@ -407,7 +407,7 @@ export default function LabPage() {
             <button
               type="button"
               onClick={() => setEditingName(false)}
-              className="text-xs text-zinc-500 hover:underline"
+              className="text-xs text-gray-600 hover:underline"
             >
               Cancel
             </button>
@@ -417,7 +417,7 @@ export default function LabPage() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="text-xs text-zinc-500 hover:text-zinc-300 border border-[var(--border)] px-2 py-1 rounded"
+            className="text-xs text-gray-600 hover:text-gray-700 border border-[var(--border)] px-2 py-1 rounded"
           >
             Sign out
           </button>
@@ -426,7 +426,7 @@ export default function LabPage() {
       {(error || status) && (
         <div className="shrink-0 px-4 py-2 border-b border-[var(--border)]">
           {error && <p className="text-sm text-red-400">{error}</p>}
-          {status && !error && <p className="text-sm text-zinc-400">{status}</p>}
+          {status && !error && <p className="text-sm text-gray-600">{status}</p>}
         </div>
       )}
 
@@ -498,14 +498,14 @@ export default function LabPage() {
             <>
               <Thread entries={entries} />
               {searchResults !== null && (
-                <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] bg-zinc-900/50">
+                <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] bg-gray-100">
                   <div className="max-w-3xl mx-auto">
-                    <p className="text-xs text-zinc-500 mb-2">Web search results</p>
+                    <p className="text-xs text-gray-600 mb-2">Web search results</p>
                     {searchResults.length === 0 ? (
-                      <p className="text-sm text-zinc-500">No results or search not configured.</p>
+                      <p className="text-sm text-gray-600">No results or search not configured.</p>
                     ) : (
                       <>
-                        <ul className="text-sm text-zinc-300 space-y-1 mb-2 max-h-32 overflow-auto">
+                        <ul className="text-sm text-gray-700 space-y-1 mb-2 max-h-32 overflow-auto">
                           {searchResults.map((r, i) => (
                             <li key={i}>
                               <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-[var(--burgundy-light)] hover:underline">{r.title}</a>
@@ -515,13 +515,13 @@ export default function LabPage() {
                         <button
                           type="button"
                           onClick={handleAddSearchToThread}
-                          className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-1 rounded"
+                          className="text-xs text-gray-600 hover:text-black border border-[var(--border)] px-2 py-1 rounded"
                         >
                           Add to thread
                         </button>
                       </>
                     )}
-                    <button type="button" onClick={() => setSearchResults(null)} className="text-xs text-zinc-500 ml-2">Close</button>
+                    <button type="button" onClick={() => setSearchResults(null)} className="text-xs text-gray-600 ml-2">Close</button>
                   </div>
                 </div>
               )}
@@ -532,38 +532,38 @@ export default function LabPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   placeholder="Search web…"
-                  className="flex-1 px-3 py-1.5 rounded bg-black border border-[var(--border)] text-sm text-white placeholder:text-zinc-500"
+                  className="flex-1 px-3 py-1.5 rounded bg-gray-50 border border-[var(--border)] text-sm text-black placeholder:text-gray-600"
                 />
                 <button
                   type="button"
                   onClick={handleSearch}
                   disabled={searching || !searchQuery.trim()}
-                  className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-1.5 rounded disabled:opacity-50"
+                  className="text-xs text-gray-600 hover:text-black border border-[var(--border)] px-2 py-1.5 rounded disabled:opacity-50"
                 >
                   {searching ? "…" : "Search"}
                 </button>
               </div>
               <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] max-w-3xl mx-auto flex flex-wrap gap-2 items-center">
-                <span className="text-xs text-zinc-500">Add link:</span>
+                <span className="text-xs text-gray-600">Add link:</span>
                 <input
                   type="url"
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   placeholder="https://…"
-                  className="flex-1 min-w-[120px] px-3 py-1.5 rounded bg-black border border-[var(--border)] text-sm text-white placeholder:text-zinc-500"
+                  className="flex-1 min-w-[120px] px-3 py-1.5 rounded bg-gray-50 border border-[var(--border)] text-sm text-black placeholder:text-gray-600"
                 />
                 <input
                   type="text"
                   value={linkTitle}
                   onChange={(e) => setLinkTitle(e.target.value)}
                   placeholder="Title (optional)"
-                  className="w-32 px-3 py-1.5 rounded bg-black border border-[var(--border)] text-sm text-white placeholder:text-zinc-500"
+                  className="w-32 px-3 py-1.5 rounded bg-gray-50 border border-[var(--border)] text-sm text-black placeholder:text-gray-600"
                 />
                 <button
                   type="button"
                   onClick={handleAddLink}
                   disabled={addingLink || !linkUrl.trim()}
-                  className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-1.5 rounded disabled:opacity-50"
+                  className="text-xs text-gray-600 hover:text-black border border-[var(--border)] px-2 py-1.5 rounded disabled:opacity-50"
                 >
                   {addingLink ? "…" : "Add link"}
                 </button>
@@ -607,7 +607,7 @@ function Onboarding({
 }) {
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-6">
-      <p className="text-xl text-zinc-300 mb-6 text-center max-w-md">
+      <p className="text-xl text-gray-700 mb-6 text-center max-w-md">
         {placeholderText}
       </p>
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
@@ -617,7 +617,7 @@ function Onboarding({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
           placeholder="Your name"
-          className="flex-1 px-4 py-3 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)]"
+          className="flex-1 px-4 py-3 rounded-lg bg-gray-50 border border-[var(--border)] text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)]"
           autoFocus
         />
         <button
@@ -655,17 +655,17 @@ function ActionCards({
   ];
   return (
     <section className="p-4 border-b border-[var(--border)]">
-      <p className="text-sm text-zinc-500 mb-3">What do you want to do next?</p>
+      <p className="text-sm text-gray-600 mb-3">What do you want to do next?</p>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {cards.map((c) => (
           <button
             key={c.label}
             type="button"
             onClick={c.onClick}
-            className="bento-card text-left p-4 rounded-xl border border-[var(--border)] bg-zinc-900/50 hover:border-[var(--burgundy)] hover:bg-zinc-800/50 transition-colors"
+            className="bento-card text-left p-4 rounded-xl border border-[var(--border)] bg-gray-100 hover:border-[var(--burgundy)] hover:bg-gray-200 transition-colors"
           >
-            <span className="font-medium text-white block">{c.label}</span>
-            <span className="text-xs text-zinc-500">{c.desc}</span>
+            <span className="font-medium text-black block">{c.label}</span>
+            <span className="text-xs text-gray-600">{c.desc}</span>
           </button>
         ))}
       </div>
@@ -677,26 +677,26 @@ function Thread({ entries }: { entries: Entry[] }) {
   return (
     <main className="flex-1 overflow-auto p-4 space-y-3">
       {entries.length === 0 && (
-        <p className="text-zinc-500 text-sm">No lab notes yet. Add one below.</p>
+        <p className="text-gray-600 text-sm">No lab notes yet. Add one below.</p>
       )}
       {entries.map((e) => (
         <div
           key={e.id}
-          className="rounded-lg border border-[var(--border)] bg-zinc-900/30 p-3"
+          className="rounded-lg border border-[var(--border)] bg-gray-50/30 p-3"
         >
           <div className="flex items-center gap-2 mb-1">
             <span className="font-medium text-[var(--burgundy-light)]">
               {e.authorDisplayName}
             </span>
-            <span className="text-xs text-zinc-500">{e.type}</span>
-            <span className="text-xs text-zinc-600 ml-auto">
+            <span className="text-xs text-gray-600">{e.type}</span>
+            <span className="text-xs text-gray-500 ml-auto">
               {new Date(e.createdAt).toLocaleString()}
             </span>
           </div>
           {e.type === "file" ? (
             <FileEntryBody body={e.body} />
           ) : (
-            <p className="text-zinc-200 whitespace-pre-wrap text-sm">{e.body}</p>
+            <p className="text-gray-800 whitespace-pre-wrap text-sm">{e.body}</p>
           )}
         </div>
       ))}
@@ -718,7 +718,7 @@ function FileEntryBody({ body }: { body: string }) {
       >
         {label}
       </a>
-      <span className="text-zinc-500 ml-2">(file)</span>
+      <span className="text-gray-600 ml-2">(file)</span>
     </div>
   );
 }
@@ -741,13 +741,13 @@ function InputArea({
   uploading: boolean;
 }) {
   return (
-    <div className="shrink-0 border-t border-[var(--border)] bg-black/80 p-4">
+    <div className="shrink-0 border-t border-[var(--border)] bg-gray-50 p-4">
       <div className="max-w-3xl mx-auto">
         {collapsed ? (
           <button
             type="button"
             onClick={() => onCollapsedChange(false)}
-            className="w-full py-2 text-sm text-zinc-500 border border-dashed border-[var(--border)] rounded-lg"
+            className="w-full py-2 text-sm text-gray-600 border border-dashed border-[var(--border)] rounded-lg"
           >
             Tap to open input
           </button>
@@ -764,13 +764,13 @@ function InputArea({
               }}
               placeholder="Lab note, or @name: message END to send mail"
               rows={3}
-              className="w-full px-4 py-3 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] resize-none"
+              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-[var(--border)] text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] resize-none"
             />
             <div className="flex justify-between items-center mt-2 gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => onCollapsedChange(true)}
-                className="text-xs text-zinc-500 md:hidden"
+                className="text-xs text-gray-600 md:hidden"
               >
                 Collapse
               </button>
@@ -778,7 +778,7 @@ function InputArea({
                 type="button"
                 onClick={onUploadClick}
                 disabled={uploading}
-                className="text-xs text-zinc-400 hover:text-zinc-200 border border-[var(--border)] px-2 py-1 rounded disabled:opacity-50"
+                className="text-xs text-gray-600 hover:text-gray-800 border border-[var(--border)] px-2 py-1 rounded disabled:opacity-50"
               >
                 {uploading ? "Uploading…" : "Attach file"}
               </button>
@@ -806,41 +806,41 @@ function SummaryPanel({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-10 bg-black/90 flex flex-col items-center justify-center p-6">
-      <div className="max-w-lg w-full rounded-xl border border-[var(--border)] bg-zinc-900 p-6">
+    <div className="fixed inset-0 z-10 bg-black/30 flex flex-col items-center justify-center p-6">
+      <div className="max-w-lg w-full rounded-xl border border-[var(--border)] bg-gray-50 p-6">
         <h2 className="text-lg font-semibold text-[var(--burgundy-light)] mb-4">
           Last session summary
         </h2>
         <div className="space-y-4 text-sm">
           <div>
-            <h3 className="text-zinc-500 mb-1">Key points</h3>
-            <ul className="list-disc list-inside text-zinc-300 space-y-1">
+            <h3 className="text-gray-600 mb-1">Key points</h3>
+            <ul className="list-disc list-inside text-gray-700 space-y-1">
               {summary.keyPoints.length
                 ? summary.keyPoints.map((s, i) => <li key={i}>{s}</li>)
-                : <li className="text-zinc-500">None extracted</li>}
+                : <li className="text-gray-600">None extracted</li>}
             </ul>
           </div>
           <div>
-            <h3 className="text-zinc-500 mb-1">Next actions</h3>
-            <ul className="list-disc list-inside text-zinc-300 space-y-1">
+            <h3 className="text-gray-600 mb-1">Next actions</h3>
+            <ul className="list-disc list-inside text-gray-700 space-y-1">
               {summary.nextActions.length
                 ? summary.nextActions.map((s, i) => <li key={i}>{s}</li>)
-                : <li className="text-zinc-500">None extracted</li>}
+                : <li className="text-gray-600">None extracted</li>}
             </ul>
           </div>
           <div>
-            <h3 className="text-zinc-500 mb-1">Open questions</h3>
-            <ul className="list-disc list-inside text-zinc-300 space-y-1">
+            <h3 className="text-gray-600 mb-1">Open questions</h3>
+            <ul className="list-disc list-inside text-gray-700 space-y-1">
               {summary.openQuestions.length
                 ? summary.openQuestions.map((s, i) => <li key={i}>{s}</li>)
-                : <li className="text-zinc-500">None</li>}
+                : <li className="text-gray-600">None</li>}
             </ul>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 w-full py-2 rounded-lg border border-[var(--border)] text-zinc-300 hover:bg-zinc-800"
+          className="mt-6 w-full py-2 rounded-lg border border-[var(--border)] text-gray-700 hover:bg-gray-200"
         >
           Close
         </button>
@@ -883,25 +883,25 @@ function PrototypePanel({
     onFormChange({ ...form, [key]: value });
   };
   return (
-    <div className="fixed inset-0 z-10 bg-black/90 overflow-auto p-6">
+    <div className="fixed inset-0 z-10 bg-black/30 overflow-auto p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         <h2 className="text-lg font-semibold text-[var(--burgundy-light)]">
           Prototype mode
         </h2>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-gray-600">
           Fill in the fields below. Generate to build a copy-ready prompt.
         </p>
         <div className="space-y-4">
           {PROTOTYPE_FIELDS.map(({ key, label, rows = 1 }) => (
             <div key={key}>
-              <label className="block text-sm text-zinc-500 mb-1">{label}</label>
+              <label className="block text-sm text-gray-600 mb-1">{label}</label>
               {rows > 1 ? (
                 <textarea
                   value={form[key] ?? ""}
                   onChange={(e) => update(key, e.target.value)}
                   placeholder={label}
                   rows={rows}
-                  className="w-full px-4 py-2 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] resize-none text-sm"
+                  className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-[var(--border)] text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] resize-none text-sm"
                 />
               ) : (
                 <input
@@ -909,7 +909,7 @@ function PrototypePanel({
                   value={form[key] ?? ""}
                   onChange={(e) => update(key, e.target.value)}
                   placeholder={label}
-                  className="w-full px-4 py-2 rounded-lg bg-black border border-[var(--border)] text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] text-sm"
+                  className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-[var(--border)] text-black placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--burgundy)] text-sm"
                 />
               )}
             </div>
@@ -923,8 +923,8 @@ function PrototypePanel({
           Generate prompt
         </button>
         {output && (
-          <div className="rounded-xl border border-[var(--border)] bg-zinc-900 p-6 space-y-4">
-            <pre className="text-sm text-zinc-300 whitespace-pre-wrap font-sans">
+          <div className="rounded-xl border border-[var(--border)] bg-gray-50 p-6 space-y-4">
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
               {formatPromptForCopy(output)}
             </pre>
             <button
@@ -939,7 +939,7 @@ function PrototypePanel({
         <button
           type="button"
           onClick={onClose}
-          className="block w-full py-2 rounded-lg border border-[var(--border)] text-zinc-400 hover:bg-zinc-800"
+          className="block w-full py-2 rounded-lg border border-[var(--border)] text-gray-600 hover:bg-gray-200"
         >
           Close
         </button>
@@ -956,13 +956,13 @@ function InboxPanel({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-10 bg-black/90 flex flex-col items-center justify-center p-6">
-      <div className="max-w-lg w-full rounded-xl border border-[var(--border)] bg-zinc-900 p-6">
+    <div className="fixed inset-0 z-10 bg-black/30 flex flex-col items-center justify-center p-6">
+      <div className="max-w-lg w-full rounded-xl border border-[var(--border)] bg-gray-50 p-6">
         <h2 className="text-lg font-semibold text-[var(--burgundy-light)] mb-4">
           Inbox
         </h2>
         {messages.length === 0 ? (
-          <p className="text-zinc-500 text-sm">No new messages.</p>
+          <p className="text-gray-600 text-sm">No new messages.</p>
         ) : (
           <ul className="space-y-3">
             {messages.map((m) => (
@@ -970,8 +970,8 @@ function InboxPanel({
                 key={m.id}
                 className="rounded-lg border border-[var(--border)] p-3 text-sm"
               >
-                <span className="text-zinc-500">From {m.fromDisplayName}:</span>
-                <p className="text-zinc-200 mt-1 whitespace-pre-wrap">{m.body}</p>
+                <span className="text-gray-600">From {m.fromDisplayName}:</span>
+                <p className="text-gray-800 mt-1 whitespace-pre-wrap">{m.body}</p>
               </li>
             ))}
           </ul>
@@ -979,7 +979,7 @@ function InboxPanel({
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 w-full py-2 rounded-lg border border-[var(--border)] text-zinc-300 hover:bg-zinc-800"
+          className="mt-6 w-full py-2 rounded-lg border border-[var(--border)] text-gray-700 hover:bg-gray-200"
         >
           Close
         </button>
@@ -1029,7 +1029,7 @@ function StoragePanel({
   }, [forwarding, forwardTo, onForward]);
 
   return (
-    <div className="fixed inset-0 z-10 bg-black/90 flex flex-col items-center p-6">
+    <div className="fixed inset-0 z-10 bg-black/30 flex flex-col items-center p-6">
       <div className="max-w-2xl w-full flex flex-col max-h-full">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="text-lg font-semibold text-[var(--burgundy-light)]">
@@ -1038,7 +1038,7 @@ function StoragePanel({
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-zinc-500 hover:text-zinc-300 border border-[var(--border)] px-2 py-1 rounded"
+            className="text-sm text-gray-600 hover:text-gray-700 border border-[var(--border)] px-2 py-1 rounded"
           >
             Close
           </button>
@@ -1047,42 +1047,39 @@ function StoragePanel({
           <button
             type="button"
             onClick={() => onFilterChange("all")}
-            className={`text-xs px-2 py-1 rounded border ${filter === "all" ? "border-[var(--burgundy)] text-white" : "border-[var(--border)] text-zinc-500"}`}
+            className={`text-xs px-2 py-1 rounded border ${filter === "all" ? "border-[var(--burgundy)] text-white" : "border-[var(--border)] text-gray-600"}`}
           >
             All
           </button>
           <button
             type="button"
             onClick={() => onFilterChange("mine")}
-            className={`text-xs px-2 py-1 rounded border ${filter === "mine" ? "border-[var(--burgundy)] text-white" : "border-[var(--border)] text-zinc-500"}`}
+            className={`text-xs px-2 py-1 rounded border ${filter === "mine" ? "border-[var(--burgundy)] text-white" : "border-[var(--border)] text-gray-600"}`}
           >
             Mine
           </button>
           <button
             type="button"
             onClick={onRefresh}
-            className="text-xs text-zinc-500 hover:text-zinc-300 border border-[var(--border)] px-2 py-1 rounded ml-auto"
+            className="text-xs text-gray-600 hover:text-gray-700 border border-[var(--border)] px-2 py-1 rounded ml-auto"
           >
             Refresh
           </button>
         </div>
-        <ul className="flex-1 overflow-auto space-y-2 border border-[var(--border)] rounded-lg p-3 bg-zinc-900/50">
+        <ul className="flex-1 overflow-auto space-y-2 border border-[var(--border)] rounded-lg p-3 bg-gray-100">
           {filtered.length === 0 ? (
-            <li className="text-zinc-500 text-sm space-y-2">
-              <p>No uploads yet. Add files or links from the main view, or click Refresh to sync.</p>
-              <p className="text-xs">
-                <a href="/api/uploads?backfill=1&debug=1" target="_blank" rel="noopener noreferrer" className="text-[var(--burgundy-light)] hover:underline">Check what the server sees</a>
-              </p>
+            <li className="text-gray-600 text-sm">
+              No uploads yet. Add files or links from the main view, or click Refresh to sync.
             </li>
           ) : (
             filtered.map((u) => (
               <li
                 key={u.id}
-                className="rounded border border-[var(--border)] p-2 bg-black/50 space-y-2"
+                className="rounded border border-[var(--border)] p-2 bg-gray-100 space-y-2"
               >
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-zinc-500 shrink-0 w-16">{label(u.kind)}</span>
-                  <span className="text-xs text-zinc-500 shrink-0">{u.uploaderDisplayName}</span>
+                  <span className="text-xs text-gray-600 shrink-0 w-16">{label(u.kind)}</span>
+                  <span className="text-xs text-gray-600 shrink-0">{u.uploaderDisplayName}</span>
                   <a
                     href={u.url}
                     target="_blank"
@@ -1092,7 +1089,7 @@ function StoragePanel({
                   >
                     {u.title || u.filename || u.url}
                   </a>
-                  <span className="text-xs text-zinc-600 shrink-0">
+                  <span className="text-xs text-gray-500 shrink-0">
                     {new Date(u.createdAt).toLocaleDateString()}
                   </span>
                   <a
@@ -1100,27 +1097,27 @@ function StoragePanel({
                     download={(u.filename || u.title || "file") as string}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-0.5 rounded shrink-0"
+                    className="text-xs text-gray-600 hover:text-black border border-[var(--border)] px-2 py-0.5 rounded shrink-0"
                   >
                     Download
                   </a>
                   <button
                     type="button"
                     onClick={() => setForwarding(u)}
-                    className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-0.5 rounded shrink-0"
+                    className="text-xs text-gray-600 hover:text-black border border-[var(--border)] px-2 py-0.5 rounded shrink-0"
                   >
                     Forward
                   </button>
                 </div>
                 {forwarding?.id === u.id && (
                   <div className="flex gap-2 items-center pl-4">
-                    <span className="text-xs text-zinc-500">To:</span>
+                    <span className="text-xs text-gray-600">To:</span>
                     <input
                       type="text"
                       value={forwardTo}
                       onChange={(e) => setForwardTo(e.target.value)}
                       placeholder="Display name"
-                      className="flex-1 min-w-0 px-2 py-1 rounded bg-black border border-[var(--border)] text-sm text-white placeholder:text-zinc-500"
+                      className="flex-1 min-w-0 px-2 py-1 rounded bg-gray-50 border border-[var(--border)] text-sm text-black placeholder:text-gray-600"
                     />
                     <button
                       type="button"
@@ -1133,7 +1130,7 @@ function StoragePanel({
                     <button
                       type="button"
                       onClick={() => { setForwarding(null); setForwardTo(""); setForwardingState("idle"); }}
-                      className="text-xs text-zinc-500 hover:text-white"
+                      className="text-xs text-gray-600 hover:text-black"
                     >
                       Cancel
                     </button>
@@ -1151,12 +1148,12 @@ function StoragePanel({
 function CommandsHint() {
   return (
     <footer className="shrink-0 px-4 py-2 border-t border-[var(--border)]">
-      <p className="text-xs text-zinc-600">
-        Commands: <code className="text-zinc-500">@onboarding</code>{" "}
-        <code className="text-zinc-500">@checkmail</code>{" "}
-        <code className="text-zinc-500">@prototype</code>{" "}
-        <code className="text-zinc-500">@summary</code>{" "}
-        <code className="text-zinc-500">@storage</code>
+      <p className="text-xs text-gray-500">
+        Commands: <code className="text-gray-600">@onboarding</code>{" "}
+        <code className="text-gray-600">@checkmail</code>{" "}
+        <code className="text-gray-600">@prototype</code>{" "}
+        <code className="text-gray-600">@summary</code>{" "}
+        <code className="text-gray-600">@storage</code>
       </p>
     </footer>
   );
