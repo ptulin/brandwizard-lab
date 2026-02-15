@@ -248,7 +248,7 @@ export async function backfillUploadsFromFileEntries(): Promise<number> {
   let inserted = 0;
   for (const e of fileEntries ?? []) {
     if (existingIds.has(e.id)) continue;
-    const lines = (e.body ?? "").trim().split("\n").map((l) => l.trim()).filter(Boolean);
+    const lines = (e.body ?? "").trim().split("\n").map((l: string) => l.trim()).filter(Boolean);
     const filename = lines.length > 1 ? lines[0]! : "file";
     const url = lines.length > 1 ? lines.slice(1).join("\n") : lines[0] ?? "";
     if (!url || !url.startsWith("http")) continue;
