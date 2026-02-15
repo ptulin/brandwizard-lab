@@ -86,7 +86,7 @@ export default function LabPage() {
 
   const loadUploads = useCallback(async () => {
     try {
-      const res = await fetch("/api/uploads?backfill=1");
+      const res = await fetch(`/api/uploads?backfill=1&_=${Date.now()}`, { cache: "no-store" });
       const json = (await res.json()) as { uploads?: Upload[]; error?: string };
       if (!res.ok) {
         setError(json.error ?? "Failed to load storage");
@@ -290,17 +290,20 @@ export default function LabPage() {
           const err = await res.json().catch(() => ({}));
           throw new Error((err as { error?: string }).error ?? res.statusText);
         }
-        setStatus("File attached");
-        setTimeout(() => setStatus(null), 2000);
+        setStatus("File attached — open Storage to view");
+        setTimeout(() => setStatus(null), 4000);
         loadEntries();
+        loadUploads();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Upload failed");
+        const msg = err instanceof Error ? err.message : "Upload failed";
+        setError(msg);
+        setStatus(null);
       } finally {
         setUploading(false);
         e.target.value = "";
       }
     },
-    [name, loadEntries]
+    [name, loadEntries, loadUploads]
   );
 
   const handleShowSummary = useCallback(() => {
