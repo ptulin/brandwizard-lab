@@ -54,3 +54,12 @@ create index if not exists idx_uploads_uploader on uploads(uploader_name_norm);
 alter table uploads enable row level security;
 drop policy if exists "uploads all" on uploads;
 create policy "uploads all" on uploads for all using (true) with check (true);
+
+-- Storage bucket (app auto-creates with service role key; run this if uploads fail)
+insert into storage.buckets (id, name, public)
+values ('lab-files', 'lab-files', true)
+on conflict (id) do update set public = true;
+drop policy if exists "lab-files insert" on storage.objects;
+drop policy if exists "lab-files select" on storage.objects;
+create policy "lab-files insert" on storage.objects for insert to public with check (bucket_id = 'lab-files');
+create policy "lab-files select" on storage.objects for select to public using (bucket_id = 'lab-files');
