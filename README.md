@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BrandWizard Lab
 
-## Getting Started
+Lightweight shared lab notebook: join by name, add notes to a single thread, queue @messages to others, get a heuristic last-session summary, and generate copy-paste-ready prototype prompts.
 
-First, run the development server:
+## Stack
+
+- **Next.js** (App Router) + TypeScript
+- **Tailwind CSS** (burgundy + black + white theme)
+- **Storage**: in-memory by default; Supabase optional (see below)
+
+## Setup
 
 ```bash
+cd brandwizard-lab
+npm install
+cp .env.local.example .env.local   # optional; only if using Supabase
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Run locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Dev:** `npm run dev`
+- **Build:** `npm run build`
+- **Start (prod):** `npm run start`
 
-## Learn More
+## Deploy to Vercel
 
-To learn more about Next.js, take a look at the following resources:
+1. Push the repo to GitHub (under account **ptulin**).
+2. In [Vercel](https://vercel.com): **Add New Project** → Import the `brandwizard-lab` repo (or the repo you created).
+3. Root directory: leave default or set to `brandwizard-lab` if the app lives in that subfolder.
+4. Build command: `npm run build` (default). Output directory: `.next` (default).
+5. Add env vars in Vercel if you use Supabase (see below).
+6. Deploy. Every push to the default branch will auto-deploy.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Configure Supabase (optional)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+MVP works with **in-memory storage** only. To persist data:
 
-## Deploy on Vercel
+1. Create a project at [supabase.com](https://supabase.com) (free tier).
+2. In **SQL Editor**, run the schema (see `supabase/schema.sql` when added).
+3. Copy **Project URL** and **anon public** key from **Settings → API**.
+4. In project root, create `.env.local`:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5. When Supabase is wired in, the app will use these; until then, the app uses in-memory store.
+
+## Features (MVP)
+
+- **Onboarding:** Type your name to begin; stored in `localStorage` and participants list.
+- **Lab notes:** Single shared thread; each entry has author, body, type (note | decision | question | action).
+- **@message:** Type `@Name: your message END` to queue a message; recipient uses **Check mail** to retrieve and mark delivered.
+- **Summary:** Heuristic extraction from last 10–30 notes: key points, next actions, open questions.
+- **Prototype mode:** Paste an idea → structured prompt (problem, target user, scope, constraints, data model, screens, acceptance criteria, implementation plan) with **Copy to clipboard**.
+
+## Commands (type in main input)
+
+- `@onboarding` — show onboarding text
+- `@checkmail` — open inbox (same as Check mail button)
+- `@prototype` — switch to prototype mode
+- `@summary` — show last-session summary
+
+## UI
+
+- Burgundy accent (`#6b0f1a`), black background, white text, bento-style action cards.
+- Input fixed at bottom on desktop; collapsible on mobile.
+- Responsive layout.
+
+## License
+
+Private / use as you like.
