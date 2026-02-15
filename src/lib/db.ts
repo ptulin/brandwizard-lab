@@ -232,6 +232,43 @@ export async function getUploads(uploaderNameNorm?: string): Promise<Upload[]> {
   }));
 }
 
+/** Backfill uploads table from existing file entries so Storage shows everything. */
+export async function backfillUploadsFromFileEntries(): Promise<number> {
+  const supabase = getSupabase();
+  const { data: fileEntries, error: fetchErr } = await supabase
+    .from("entries")
+    .select("id, author_display_name, author_name_norm, body")
+    .eq("type", "file");
+  if (fetchErr) throw fetchErr;
+  const { data: existingUploads } = await supabase
+    .from("uploads")
+    .select("entry_id")
+    .not("entry_id", "is", null);
+  const existingIds = new Set((existingUploads ?? []).map((u) => u.entry_id));
+  let inserted = 0;
+  for (const e of fileEntries ?? []) {
+    if (existingIds.has(e.id)) continue;
+    const lines = (e.body ?? "").trim().split("\n");
+    const filename = lines[0]?.trim() || "file";
+    const url = lines.slice(1).join("\n").trim();
+    if (!url) continue;
+    const kind = url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? "screenshot" : "file";
+    const { error: insErr } = await supabase.from("uploads").insert({
+      uploader_display_name: e.author_display_name,
+      uploader_name_norm: e.author_name_norm,
+      kind,
+      url,
+      filename,
+      entry_id: e.id,
+    });
+    if (!insErr) {
+      inserted++;
+      existingIds.add(e.id);
+    }
+  }
+  return inserted;
+}
+
 export function hasSupabase(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&

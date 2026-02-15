@@ -86,8 +86,9 @@ export default function LabPage() {
 
   const loadUploads = useCallback(async () => {
     try {
-      const list = await fetchUploads();
-      setUploads(list);
+      const res = await fetch("/api/uploads?backfill=1");
+      const json = (await res.json()) as { uploads?: Upload[] };
+      setUploads(json.uploads ?? []);
     } catch {
       setUploads([]);
     }
@@ -475,6 +476,12 @@ export default function LabPage() {
               currentNameNorm={name ? name.trim().toLowerCase().replace(/\s+/g, " ") : ""}
               onClose={() => setView("main")}
               onRefresh={loadUploads}
+              onForward={async (upload, toDisplayName) => {
+                const body = `Attached: ${upload.title || upload.filename || upload.url}\n${upload.url}`;
+                await postMessage(toDisplayName, name ?? "", body);
+                setStatus(`Sent to ${toDisplayName}`);
+                setTimeout(() => setStatus(null), 2000);
+              }}
             />
           )}
 
@@ -979,6 +986,7 @@ function StoragePanel({
   currentNameNorm,
   onClose,
   onRefresh,
+  onForward,
 }: {
   uploads: Upload[];
   filter: "all" | "mine";
@@ -986,12 +994,31 @@ function StoragePanel({
   currentNameNorm: string;
   onClose: () => void;
   onRefresh: () => void;
+  onForward: (upload: Upload, toDisplayName: string) => Promise<void>;
 }) {
+  const [forwarding, setForwarding] = useState<Upload | null>(null);
+  const [forwardTo, setForwardTo] = useState("");
+  const [forwardingState, setForwardingState] = useState<"idle" | "sending" | "done">("idle");
+
   const filtered =
     filter === "mine"
       ? uploads.filter((u) => u.uploaderNameNorm === currentNameNorm)
       : uploads;
   const label = (k: Upload["kind"]) => (k === "file" ? "File" : k === "link" ? "Link" : "Screenshot");
+
+  const handleSendForward = useCallback(async () => {
+    if (!forwarding || !forwardTo.trim()) return;
+    setForwardingState("sending");
+    try {
+      await onForward(forwarding, forwardTo.trim());
+      setForwarding(null);
+      setForwardTo("");
+      setForwardingState("done");
+    } catch {
+      setForwardingState("idle");
+    }
+  }, [forwarding, forwardTo, onForward]);
+
   return (
     <div className="fixed inset-0 z-10 bg-black/90 flex flex-col items-center p-6">
       <div className="max-w-2xl w-full flex flex-col max-h-full">
@@ -1037,22 +1064,67 @@ function StoragePanel({
             filtered.map((u) => (
               <li
                 key={u.id}
-                className="flex items-center gap-3 rounded border border-[var(--border)] p-2 bg-black/50"
+                className="rounded border border-[var(--border)] p-2 bg-black/50 space-y-2"
               >
-                <span className="text-xs text-zinc-500 shrink-0 w-16">{label(u.kind)}</span>
-                <span className="text-xs text-zinc-500 shrink-0">{u.uploaderDisplayName}</span>
-                <a
-                  href={u.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 min-w-0 truncate text-sm text-[var(--burgundy-light)] hover:underline"
-                  title={u.url}
-                >
-                  {u.title || u.filename || u.url}
-                </a>
-                <span className="text-xs text-zinc-600 shrink-0">
-                  {new Date(u.createdAt).toLocaleDateString()}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-zinc-500 shrink-0 w-16">{label(u.kind)}</span>
+                  <span className="text-xs text-zinc-500 shrink-0">{u.uploaderDisplayName}</span>
+                  <a
+                    href={u.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-0 truncate text-sm text-[var(--burgundy-light)] hover:underline"
+                    title={u.url}
+                  >
+                    {u.title || u.filename || u.url}
+                  </a>
+                  <span className="text-xs text-zinc-600 shrink-0">
+                    {new Date(u.createdAt).toLocaleDateString()}
+                  </span>
+                  <a
+                    href={u.url}
+                    download={(u.filename || u.title || "file") as string}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-0.5 rounded shrink-0"
+                  >
+                    Download
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setForwarding(u)}
+                    className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-0.5 rounded shrink-0"
+                  >
+                    Forward
+                  </button>
+                </div>
+                {forwarding?.id === u.id && (
+                  <div className="flex gap-2 items-center pl-4">
+                    <span className="text-xs text-zinc-500">To:</span>
+                    <input
+                      type="text"
+                      value={forwardTo}
+                      onChange={(e) => setForwardTo(e.target.value)}
+                      placeholder="Display name"
+                      className="flex-1 min-w-0 px-2 py-1 rounded bg-black border border-[var(--border)] text-sm text-white placeholder:text-zinc-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendForward}
+                      disabled={forwardingState === "sending" || !forwardTo.trim()}
+                      className="text-xs text-[var(--burgundy-light)] border border-[var(--burgundy)] px-2 py-1 rounded disabled:opacity-50"
+                    >
+                      {forwardingState === "sending" ? "…" : "Send"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setForwarding(null); setForwardTo(""); setForwardingState("idle"); }}
+                      className="text-xs text-zinc-500 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </li>
             ))
           )}

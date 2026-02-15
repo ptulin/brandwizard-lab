@@ -65,6 +65,11 @@ export async function getUploads(uploaderNameNorm?: string): Promise<Upload[]> {
   return db.getUploads(uploaderNameNorm);
 }
 
+export async function backfillUploadsFromFileEntries(): Promise<number> {
+  if (!useSupabase()) return 0;
+  return db.backfillUploadsFromFileEntries();
+}
+
 export async function insertUpload(
   uploaderDisplayName: string,
   uploaderNameNorm: string,
