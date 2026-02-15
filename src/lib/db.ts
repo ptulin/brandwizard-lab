@@ -1,5 +1,5 @@
 import { getSupabase } from "@/lib/supabase-server";
-import type { Entry, EntryType, QueuedMessage, Participant } from "@/types";
+import type { Entry, EntryType, QueuedMessage, Participant, Upload, UploadKind } from "@/types";
 
 const BUCKET = "lab-files";
 
@@ -171,6 +171,65 @@ export async function uploadFile(
   if (uploadError) throw uploadError;
   const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return { url: urlData.publicUrl, filename };
+}
+
+export async function insertUpload(
+  uploaderDisplayName: string,
+  uploaderNameNorm: string,
+  kind: UploadKind,
+  url: string,
+  opts: { title?: string; filename?: string; entryId?: string } = {}
+): Promise<Upload> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("uploads")
+    .insert({
+      uploader_display_name: uploaderDisplayName,
+      uploader_name_norm: uploaderNameNorm,
+      kind,
+      url,
+      title: opts.title ?? null,
+      filename: opts.filename ?? null,
+      entry_id: opts.entryId ?? null,
+    })
+    .select("id, uploader_display_name, uploader_name_norm, kind, url, title, filename, entry_id, created_at")
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    uploaderDisplayName: data.uploader_display_name,
+    uploaderNameNorm: data.uploader_name_norm,
+    kind: data.kind as UploadKind,
+    url: data.url,
+    title: data.title,
+    filename: data.filename,
+    entryId: data.entry_id,
+    createdAt: data.created_at,
+  };
+}
+
+export async function getUploads(uploaderNameNorm?: string): Promise<Upload[]> {
+  const supabase = getSupabase();
+  let q = supabase
+    .from("uploads")
+    .select("id, uploader_display_name, uploader_name_norm, kind, url, title, filename, entry_id, created_at")
+    .order("created_at", { ascending: false });
+  if (uploaderNameNorm?.trim()) {
+    q = q.eq("uploader_name_norm", norm(uploaderNameNorm));
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    uploaderDisplayName: r.uploader_display_name,
+    uploaderNameNorm: r.uploader_name_norm,
+    kind: r.kind as UploadKind,
+    url: r.url,
+    title: r.title,
+    filename: r.filename,
+    entryId: r.entry_id,
+    createdAt: r.created_at,
+  }));
 }
 
 export function hasSupabase(): boolean {

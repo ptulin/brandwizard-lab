@@ -32,6 +32,14 @@ export async function POST(request: Request) {
       body,
       "file" as EntryType
     );
+    const kind = file.type.startsWith("image/") ? "screenshot" : "file";
+    await db.insertUpload(
+      authorDisplayName.trim(),
+      authorNameNorm.trim(),
+      kind,
+      url,
+      { filename, entryId: entry.id }
+    );
     return NextResponse.json(entry);
   } catch (e) {
     console.error("Upload error:", e);

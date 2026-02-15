@@ -43,3 +43,17 @@ export interface PrototypePrompt {
   acceptanceCriteria: string;
   implementationPlan: string;
 }
+
+export type UploadKind = "file" | "link" | "screenshot";
+
+export interface Upload {
+  id: string;
+  uploaderDisplayName: string;
+  uploaderNameNorm: string;
+  kind: UploadKind;
+  url: string;
+  title: string | null;
+  filename: string | null;
+  entryId: string | null;
+  createdAt: string;
+}

@@ -2,7 +2,7 @@
 
 import * as data from "@/lib/data";
 import { getLLMReply, buildRecentContext } from "@/lib/llm";
-import type { Entry, EntryType, QueuedMessage } from "@/types";
+import type { Entry, EntryType, QueuedMessage, Upload } from "@/types";
 
 export async function fetchEntries(): Promise<Entry[]> {
   return data.getEntries();
@@ -66,4 +66,8 @@ export async function postMessage(
   body: string
 ): Promise<QueuedMessage> {
   return data.queueMessage(toDisplayName, fromDisplayName, body);
+}
+
+export async function fetchUploads(uploaderNameNorm?: string): Promise<Upload[]> {
+  return data.getUploads(uploaderNameNorm);
 }

@@ -1,6 +1,6 @@
 import * as db from "@/lib/db";
 import { store } from "@/lib/store";
-import type { Entry, EntryType, QueuedMessage, Participant } from "@/types";
+import type { Entry, EntryType, QueuedMessage, Participant, Upload, UploadKind } from "@/types";
 
 function useSupabase(): boolean {
   return db.hasSupabase();
@@ -58,4 +58,20 @@ export async function uploadFile(
 ): Promise<{ url: string; filename: string }> {
   if (!useSupabase()) throw new Error("File upload requires Supabase (set env vars).");
   return db.uploadFile(authorDisplayName, authorNameNorm, file, filename);
+}
+
+export async function getUploads(uploaderNameNorm?: string): Promise<Upload[]> {
+  if (!useSupabase()) return [];
+  return db.getUploads(uploaderNameNorm);
+}
+
+export async function insertUpload(
+  uploaderDisplayName: string,
+  uploaderNameNorm: string,
+  kind: UploadKind,
+  url: string,
+  opts: { title?: string; filename?: string; entryId?: string } = {}
+): Promise<Upload> {
+  if (!useSupabase()) throw new Error("Document storage requires Supabase.");
+  return db.insertUpload(uploaderDisplayName, uploaderNameNorm, kind, url, opts);
 }

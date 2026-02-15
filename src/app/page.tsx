@@ -9,12 +9,13 @@ import {
   fetchUndeliveredMessages,
   deliverMessages,
   postMessage,
+  fetchUploads,
 } from "./actions";
 import { buildHeuristicSummary } from "@/lib/summary";
 import { buildPrototypeFromForm, formatPromptForCopy } from "@/lib/prototype";
 import { parseInput } from "@/lib/parse";
 import { getSupabaseClientSafe } from "@/lib/supabase/client";
-import type { Entry, QueuedMessage, SessionSummary, PrototypePrompt } from "@/types";
+import type { Entry, QueuedMessage, SessionSummary, PrototypePrompt, Upload } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
 const NAME_KEY = "bw-lab-name";
@@ -28,7 +29,7 @@ export default function LabPage() {
   const [editNameValue, setEditNameValue] = useState("");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [view, setView] = useState<"main" | "summary" | "prototype" | "mail">("main");
+  const [view, setView] = useState<"main" | "summary" | "prototype" | "mail" | "storage">("main");
   const [inbox, setInbox] = useState<QueuedMessage[]>([]);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [prototypeForm, setPrototypeForm] = useState<Partial<PrototypePrompt>>({});
@@ -42,6 +43,11 @@ export default function LabPage() {
   const [searchResults, setSearchResults] = useState<{ title: string; link: string; snippet: string }[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
+  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [storageFilter, setStorageFilter] = useState<"all" | "mine">("all");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkTitle, setLinkTitle] = useState("");
+  const [addingLink, setAddingLink] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -78,6 +84,15 @@ export default function LabPage() {
     }
   }, []);
 
+  const loadUploads = useCallback(async () => {
+    try {
+      const list = await fetchUploads();
+      setUploads(list);
+    } catch {
+      setUploads([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadName();
   }, [loadName, authUser?.email]);
@@ -100,6 +115,10 @@ export default function LabPage() {
     const id = setInterval(loadEntries, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [name, view, loadEntries]);
+
+  useEffect(() => {
+    if (view === "storage" && name) loadUploads();
+  }, [view, name, loadUploads]);
 
   const handleSubmitName = useCallback(async () => {
     const displayName = nameInput.trim();
@@ -170,6 +189,12 @@ export default function LabPage() {
     if (lower === "@summary") {
       setSummary(buildHeuristicSummary(entries));
       setView("summary");
+      setInputValue("");
+      return;
+    }
+    if (lower === "@storage") {
+      setView("storage");
+      loadUploads();
       setInputValue("");
       return;
     }
@@ -289,6 +314,45 @@ export default function LabPage() {
     });
   }, [prototypeOutput]);
 
+  const handleAddLink = useCallback(async () => {
+    const url = linkUrl.trim();
+    if (!url || !name) return;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      setError("URL must start with http:// or https://");
+      return;
+    }
+    setAddingLink(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/uploads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authorDisplayName: name,
+          authorNameNorm: name.trim().toLowerCase().replace(/\s+/g, " "),
+          url,
+          title: linkTitle.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error ?? res.statusText);
+      }
+      const body = linkTitle.trim() ? `Added link: ${linkTitle.trim()} — ${url}` : `Added link: ${url}`;
+      const nameNorm = name.trim().toLowerCase().replace(/\s+/g, " ");
+      await postEntry(name, nameNorm, body, "note");
+      setLinkUrl("");
+      setLinkTitle("");
+      setStatus("Link added");
+      setTimeout(() => setStatus(null), 2000);
+      loadEntries();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add link");
+    } finally {
+      setAddingLink(false);
+    }
+  }, [name, linkUrl, linkTitle, loadEntries]);
+
   const hasName = Boolean(name?.trim());
 
   return (
@@ -377,6 +441,10 @@ export default function LabPage() {
               setPrototypeOutput(null);
             }}
             onCheckMail={handleCheckMail}
+            onStorage={() => {
+              setView("storage");
+              loadUploads();
+            }}
           />
 
           {view === "summary" && summary && (
@@ -397,6 +465,16 @@ export default function LabPage() {
             <InboxPanel
               messages={inbox}
               onClose={() => setView("main")}
+            />
+          )}
+          {view === "storage" && (
+            <StoragePanel
+              uploads={uploads}
+              filter={storageFilter}
+              onFilterChange={setStorageFilter}
+              currentNameNorm={name ? name.trim().toLowerCase().replace(/\s+/g, " ") : ""}
+              onClose={() => setView("main")}
+              onRefresh={loadUploads}
             />
           )}
 
@@ -447,6 +525,31 @@ export default function LabPage() {
                   className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-1.5 rounded disabled:opacity-50"
                 >
                   {searching ? "…" : "Search"}
+                </button>
+              </div>
+              <div className="shrink-0 px-4 py-2 border-t border-[var(--border)] max-w-3xl mx-auto flex flex-wrap gap-2 items-center">
+                <span className="text-xs text-zinc-500">Add link:</span>
+                <input
+                  type="url"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://…"
+                  className="flex-1 min-w-[120px] px-3 py-1.5 rounded bg-black border border-[var(--border)] text-sm text-white placeholder:text-zinc-500"
+                />
+                <input
+                  type="text"
+                  value={linkTitle}
+                  onChange={(e) => setLinkTitle(e.target.value)}
+                  placeholder="Title (optional)"
+                  className="w-32 px-3 py-1.5 rounded bg-black border border-[var(--border)] text-sm text-white placeholder:text-zinc-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddLink}
+                  disabled={addingLink || !linkUrl.trim()}
+                  className="text-xs text-zinc-400 hover:text-white border border-[var(--border)] px-2 py-1.5 rounded disabled:opacity-50"
+                >
+                  {addingLink ? "…" : "Add link"}
                 </button>
               </div>
               <InputArea
@@ -519,17 +622,20 @@ function ActionCards({
   onSummary,
   onPrototype,
   onCheckMail,
+  onStorage,
 }: {
   onContinue: () => void;
   onSummary: () => void;
   onPrototype: () => void;
   onCheckMail: () => void;
+  onStorage: () => void;
 }) {
   const cards = [
     { label: "Continue", onClick: onContinue, desc: "Focus input" },
     { label: "Last session summary", onClick: onSummary, desc: "Key points & actions" },
     { label: "Prototype mode", onClick: onPrototype, desc: "Structured prompt" },
     { label: "Check mail", onClick: onCheckMail, desc: "Inbox" },
+    { label: "Storage", onClick: onStorage, desc: "Docs, links, screenshots" },
   ];
   return (
     <section className="p-4 border-b border-[var(--border)]">
@@ -866,6 +972,96 @@ function InboxPanel({
   );
 }
 
+function StoragePanel({
+  uploads,
+  filter,
+  onFilterChange,
+  currentNameNorm,
+  onClose,
+  onRefresh,
+}: {
+  uploads: Upload[];
+  filter: "all" | "mine";
+  onFilterChange: (f: "all" | "mine") => void;
+  currentNameNorm: string;
+  onClose: () => void;
+  onRefresh: () => void;
+}) {
+  const filtered =
+    filter === "mine"
+      ? uploads.filter((u) => u.uploaderNameNorm === currentNameNorm)
+      : uploads;
+  const label = (k: Upload["kind"]) => (k === "file" ? "File" : k === "link" ? "Link" : "Screenshot");
+  return (
+    <div className="fixed inset-0 z-10 bg-black/90 flex flex-col items-center p-6">
+      <div className="max-w-2xl w-full flex flex-col max-h-full">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h2 className="text-lg font-semibold text-[var(--burgundy-light)]">
+            Storage — docs, links, screenshots
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm text-zinc-500 hover:text-zinc-300 border border-[var(--border)] px-2 py-1 rounded"
+          >
+            Close
+          </button>
+        </div>
+        <div className="flex gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => onFilterChange("all")}
+            className={`text-xs px-2 py-1 rounded border ${filter === "all" ? "border-[var(--burgundy)] text-white" : "border-[var(--border)] text-zinc-500"}`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => onFilterChange("mine")}
+            className={`text-xs px-2 py-1 rounded border ${filter === "mine" ? "border-[var(--burgundy)] text-white" : "border-[var(--border)] text-zinc-500"}`}
+          >
+            Mine
+          </button>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="text-xs text-zinc-500 hover:text-zinc-300 border border-[var(--border)] px-2 py-1 rounded ml-auto"
+          >
+            Refresh
+          </button>
+        </div>
+        <ul className="flex-1 overflow-auto space-y-2 border border-[var(--border)] rounded-lg p-3 bg-zinc-900/50">
+          {filtered.length === 0 ? (
+            <li className="text-zinc-500 text-sm">No uploads yet. Add files or links from the main view.</li>
+          ) : (
+            filtered.map((u) => (
+              <li
+                key={u.id}
+                className="flex items-center gap-3 rounded border border-[var(--border)] p-2 bg-black/50"
+              >
+                <span className="text-xs text-zinc-500 shrink-0 w-16">{label(u.kind)}</span>
+                <span className="text-xs text-zinc-500 shrink-0">{u.uploaderDisplayName}</span>
+                <a
+                  href={u.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-0 truncate text-sm text-[var(--burgundy-light)] hover:underline"
+                  title={u.url}
+                >
+                  {u.title || u.filename || u.url}
+                </a>
+                <span className="text-xs text-zinc-600 shrink-0">
+                  {new Date(u.createdAt).toLocaleDateString()}
+                </span>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function CommandsHint() {
   return (
     <footer className="shrink-0 px-4 py-2 border-t border-[var(--border)]">
@@ -873,7 +1069,8 @@ function CommandsHint() {
         Commands: <code className="text-zinc-500">@onboarding</code>{" "}
         <code className="text-zinc-500">@checkmail</code>{" "}
         <code className="text-zinc-500">@prototype</code>{" "}
-        <code className="text-zinc-500">@summary</code>
+        <code className="text-zinc-500">@summary</code>{" "}
+        <code className="text-zinc-500">@storage</code>
       </p>
     </footer>
   );
