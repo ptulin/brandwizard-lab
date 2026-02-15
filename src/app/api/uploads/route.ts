@@ -20,7 +20,11 @@ export async function GET(request: Request) {
     }
     let uploads = await data.getUploads(uploader);
     const entries = await db.getEntries();
-    const fileEntries = entries.filter((e) => e.type === "file");
+    const fileEntries = entries.filter((e) => {
+      if (e.type === "file") return true;
+      const body = (e.body ?? "").trim();
+      return body.includes("http") && (body.includes("\n") || body.startsWith("http"));
+    });
     const hasEntryId = new Set(uploads.map((u) => u.entryId).filter(Boolean));
     for (const e of fileEntries) {
       if (hasEntryId.has(e.id)) continue;
