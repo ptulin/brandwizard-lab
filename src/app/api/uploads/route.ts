@@ -99,6 +99,28 @@ export async function GET(request: Request) {
   }
 }
 
+export async function DELETE(request: Request) {
+  if (!db.hasSupabase()) {
+    return NextResponse.json({ error: "Document storage not configured" }, { status: 503 });
+  }
+  try {
+    const body = await request.json();
+    const id = body.id as string | null;
+    const url = body.url as string | null;
+    if (!id || !url) {
+      return NextResponse.json({ error: "id and url required" }, { status: 400 });
+    }
+    await db.deleteUpload(id, url);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("Delete upload error:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Delete failed" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   if (!db.hasSupabase()) {
     return NextResponse.json({ error: "Document storage not configured" }, { status: 503 });

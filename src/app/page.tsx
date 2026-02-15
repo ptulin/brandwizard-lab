@@ -485,6 +485,15 @@ export default function LabPage() {
               currentNameNorm={name ? name.trim().toLowerCase().replace(/\s+/g, " ") : ""}
               onClose={() => setView("main")}
               onRefresh={loadUploads}
+              onDelete={async (upload) => {
+                const res = await fetch("/api/uploads", {
+                  method: "DELETE",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: upload.id, url: upload.url }),
+                });
+                if (!res.ok) throw new Error((await res.json()).error ?? "Delete failed");
+                loadUploads();
+              }}
               onForward={async (upload, toDisplayName) => {
                 const body = `Attached: ${upload.title || upload.filename || upload.url}\n${upload.url}`;
                 await postMessage(toDisplayName, name ?? "", body);
@@ -654,15 +663,15 @@ function ActionCards({
     { label: "Storage", onClick: onStorage, desc: "Docs, links, screenshots" },
   ];
   return (
-    <section className="p-4 border-b border-[var(--border)]">
-      <p className="text-sm text-gray-600 mb-3">What do you want to do next?</p>
+    <section className="p-4 border-b-2 border-[var(--border)]">
+      <p className="text-sm font-medium text-gray-700 mb-3">What do you want to do next?</p>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {cards.map((c) => (
           <button
             key={c.label}
             type="button"
             onClick={c.onClick}
-            className="bento-card text-left p-4 rounded-xl border border-[var(--border)] bg-gray-100 hover:border-[var(--burgundy)] hover:bg-gray-200 transition-colors"
+            className="bento-card text-left p-4 rounded-xl border-2 border-[var(--border)] bg-white shadow-sm hover:border-[var(--burgundy)] hover:shadow-md transition-colors"
           >
             <span className="font-medium text-black block">{c.label}</span>
             <span className="text-xs text-gray-600">{c.desc}</span>
@@ -682,7 +691,7 @@ function Thread({ entries }: { entries: Entry[] }) {
       {entries.map((e) => (
         <div
           key={e.id}
-          className="rounded-lg border border-[var(--border)] bg-gray-50/30 p-3"
+          className="rounded-lg border-2 border-[var(--border)] bg-white shadow-sm p-3"
         >
           <div className="flex items-center gap-2 mb-1">
             <span className="font-medium text-[var(--burgundy-light)]">
@@ -806,8 +815,8 @@ function SummaryPanel({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-10 bg-black/30 flex flex-col items-center justify-center p-6">
-      <div className="max-w-lg w-full rounded-xl border border-[var(--border)] bg-gray-50 p-6">
+    <div className="fixed inset-0 z-10 bg-black/40 flex flex-col items-center justify-center p-6">
+      <div className="max-w-lg w-full rounded-xl border-2 border-[var(--border)] bg-white shadow-xl p-6">
         <h2 className="text-lg font-semibold text-[var(--burgundy-light)] mb-4">
           Last session summary
         </h2>
@@ -840,7 +849,7 @@ function SummaryPanel({
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 w-full py-2 rounded-lg border border-[var(--border)] text-gray-700 hover:bg-gray-200"
+          className="mt-6 w-full py-2 rounded-lg border-2 border-[var(--border)] text-gray-700 font-medium hover:bg-gray-100"
         >
           Close
         </button>
@@ -883,8 +892,8 @@ function PrototypePanel({
     onFormChange({ ...form, [key]: value });
   };
   return (
-    <div className="fixed inset-0 z-10 bg-black/30 overflow-auto p-6">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="fixed inset-0 z-10 bg-black/40 overflow-auto p-6">
+      <div className="max-w-2xl mx-auto space-y-6 rounded-xl border-2 border-[var(--border)] bg-white shadow-xl p-6">
         <h2 className="text-lg font-semibold text-[var(--burgundy-light)]">
           Prototype mode
         </h2>
@@ -939,7 +948,7 @@ function PrototypePanel({
         <button
           type="button"
           onClick={onClose}
-          className="block w-full py-2 rounded-lg border border-[var(--border)] text-gray-600 hover:bg-gray-200"
+          className="block w-full py-2 rounded-lg border-2 border-[var(--border)] text-gray-700 font-medium hover:bg-gray-100"
         >
           Close
         </button>
@@ -956,9 +965,9 @@ function InboxPanel({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-10 bg-black/30 flex flex-col items-center justify-center p-6">
-      <div className="max-w-lg w-full rounded-xl border border-[var(--border)] bg-gray-50 p-6">
-        <h2 className="text-lg font-semibold text-[var(--burgundy-light)] mb-4">
+    <div className="fixed inset-0 z-10 bg-black/40 flex flex-col items-center justify-center p-6">
+      <div className="max-w-lg w-full rounded-xl border-2 border-[var(--border)] bg-white shadow-xl p-6">
+        <h2 className="text-lg font-semibold text-[var(--burgundy)] mb-4">
           Inbox
         </h2>
         {messages.length === 0 ? (
@@ -968,7 +977,7 @@ function InboxPanel({
             {messages.map((m) => (
               <li
                 key={m.id}
-                className="rounded-lg border border-[var(--border)] p-3 text-sm"
+                className="rounded-lg border-2 border-[var(--border)] p-3 text-sm bg-white shadow-sm"
               >
                 <span className="text-gray-600">From {m.fromDisplayName}:</span>
                 <p className="text-gray-800 mt-1 whitespace-pre-wrap">{m.body}</p>
@@ -979,7 +988,7 @@ function InboxPanel({
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 w-full py-2 rounded-lg border border-[var(--border)] text-gray-700 hover:bg-gray-200"
+          className="mt-6 w-full py-2 rounded-lg border-2 border-[var(--border)] text-gray-700 font-medium hover:bg-gray-100"
         >
           Close
         </button>
@@ -995,6 +1004,7 @@ function StoragePanel({
   currentNameNorm,
   onClose,
   onRefresh,
+  onDelete,
   onForward,
 }: {
   uploads: Upload[];
@@ -1003,11 +1013,13 @@ function StoragePanel({
   currentNameNorm: string;
   onClose: () => void;
   onRefresh: () => void;
+  onDelete: (upload: Upload) => Promise<void>;
   onForward: (upload: Upload, toDisplayName: string) => Promise<void>;
 }) {
   const [forwarding, setForwarding] = useState<Upload | null>(null);
   const [forwardTo, setForwardTo] = useState("");
   const [forwardingState, setForwardingState] = useState<"idle" | "sending" | "done">("idle");
+  const [deleting, setDeleting] = useState<Set<string>>(new Set());
 
   const filtered =
     filter === "mine"
@@ -1028,17 +1040,33 @@ function StoragePanel({
     }
   }, [forwarding, forwardTo, onForward]);
 
+  const handleDelete = useCallback(
+    async (u: Upload) => {
+      setDeleting((s) => new Set(s).add(u.id));
+      try {
+        await onDelete(u);
+      } finally {
+        setDeleting((s) => {
+          const next = new Set(s);
+          next.delete(u.id);
+          return next;
+        });
+      }
+    },
+    [onDelete]
+  );
+
   return (
-    <div className="fixed inset-0 z-10 bg-black/30 flex flex-col items-center p-6">
-      <div className="max-w-2xl w-full flex flex-col max-h-full">
+    <div className="fixed inset-0 z-10 bg-black/40 flex flex-col items-center p-6">
+      <div className="max-w-2xl w-full flex flex-col max-h-full rounded-xl border-2 border-[var(--border)] bg-white shadow-xl p-4">
         <div className="flex items-center justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-[var(--burgundy-light)]">
+          <h2 className="text-lg font-semibold text-[var(--burgundy)]">
             Storage — docs, links, screenshots
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-gray-600 hover:text-gray-700 border border-[var(--border)] px-2 py-1 rounded"
+            className="text-sm text-gray-700 hover:text-black border-2 border-[var(--border)] px-3 py-1.5 rounded-lg font-medium"
           >
             Close
           </button>
@@ -1047,44 +1075,44 @@ function StoragePanel({
           <button
             type="button"
             onClick={() => onFilterChange("all")}
-            className={`text-xs px-2 py-1 rounded border ${filter === "all" ? "border-[var(--burgundy)] text-white" : "border-[var(--border)] text-gray-600"}`}
+            className={`text-sm px-3 py-1.5 rounded-lg border-2 font-medium ${filter === "all" ? "border-[var(--burgundy)] bg-[var(--burgundy)] text-white" : "border-[var(--border)] text-gray-700 hover:bg-gray-100"}`}
           >
             All
           </button>
           <button
             type="button"
             onClick={() => onFilterChange("mine")}
-            className={`text-xs px-2 py-1 rounded border ${filter === "mine" ? "border-[var(--burgundy)] text-white" : "border-[var(--border)] text-gray-600"}`}
+            className={`text-sm px-3 py-1.5 rounded-lg border-2 font-medium ${filter === "mine" ? "border-[var(--burgundy)] bg-[var(--burgundy)] text-white" : "border-[var(--border)] text-gray-700 hover:bg-gray-100"}`}
           >
             Mine
           </button>
           <button
             type="button"
             onClick={onRefresh}
-            className="text-xs text-gray-600 hover:text-gray-700 border border-[var(--border)] px-2 py-1 rounded ml-auto"
+            className="text-sm text-gray-700 hover:text-black border-2 border-[var(--border)] px-3 py-1.5 rounded-lg font-medium ml-auto"
           >
             Refresh
           </button>
         </div>
-        <ul className="flex-1 overflow-auto space-y-2 border border-[var(--border)] rounded-lg p-3 bg-gray-100">
+        <ul className="flex-1 overflow-auto space-y-3 border-2 border-[var(--border)] rounded-lg p-4 bg-gray-50">
           {filtered.length === 0 ? (
-            <li className="text-gray-600 text-sm">
+            <li className="text-gray-600 text-sm py-4">
               No uploads yet. Add files or links from the main view, or click Refresh to sync.
             </li>
           ) : (
             filtered.map((u) => (
               <li
                 key={u.id}
-                className="rounded border border-[var(--border)] p-2 bg-gray-100 space-y-2"
+                className="rounded-lg border-2 border-[var(--border)] p-3 bg-white shadow-sm space-y-2"
               >
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-gray-600 shrink-0 w-16">{label(u.kind)}</span>
+                  <span className="text-xs font-medium text-gray-600 shrink-0 w-16">{label(u.kind)}</span>
                   <span className="text-xs text-gray-600 shrink-0">{u.uploaderDisplayName}</span>
                   <a
                     href={u.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 min-w-0 truncate text-sm text-[var(--burgundy-light)] hover:underline"
+                    className="flex-1 min-w-0 truncate text-sm font-medium text-[var(--burgundy)] hover:underline"
                     title={u.url}
                   >
                     {u.title || u.filename || u.url}
@@ -1094,19 +1122,35 @@ function StoragePanel({
                   </span>
                   <a
                     href={u.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-medium text-gray-700 hover:text-black border-2 border-[var(--border)] px-2 py-1 rounded shrink-0"
+                  >
+                    Open
+                  </a>
+                  <a
+                    href={u.url}
                     download={(u.filename || u.title || "file") as string}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-gray-600 hover:text-black border border-[var(--border)] px-2 py-0.5 rounded shrink-0"
+                    className="text-xs font-medium text-gray-700 hover:text-black border-2 border-[var(--border)] px-2 py-1 rounded shrink-0"
                   >
                     Download
                   </a>
                   <button
                     type="button"
                     onClick={() => setForwarding(u)}
-                    className="text-xs text-gray-600 hover:text-black border border-[var(--border)] px-2 py-0.5 rounded shrink-0"
+                    className="text-xs font-medium text-gray-700 hover:text-black border-2 border-[var(--border)] px-2 py-1 rounded shrink-0"
                   >
                     Forward
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(u)}
+                    disabled={deleting.has(u.id)}
+                    className="text-xs font-medium text-red-600 hover:text-red-700 border-2 border-red-300 px-2 py-1 rounded shrink-0 disabled:opacity-50"
+                  >
+                    {deleting.has(u.id) ? "…" : "Delete"}
                   </button>
                 </div>
                 {forwarding?.id === u.id && (

@@ -301,6 +301,21 @@ export async function listStorageBucketFiles(): Promise<Upload[]> {
   return result;
 }
 
+/** Delete an upload: from storage bucket (if our URL) and from uploads table (if UUID id). */
+export async function deleteUpload(id: string, url: string): Promise<void> {
+  const supabase = getStorageClient();
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) {
+    const { error } = await getSupabase().from("uploads").delete().eq("id", id);
+    if (error) throw error;
+  }
+  const match = url.match(/\/storage\/v1\/object\/public\/lab-files\/(.+?)(?:\?|$)/);
+  if (match) {
+    const path = decodeURIComponent(match[1]!);
+    await supabase.storage.from(BUCKET).remove([path]);
+  }
+}
+
 /** Backfill uploads table from existing file entries so Storage shows everything. */
 export async function backfillUploadsFromFileEntries(): Promise<number> {
   const supabase = getSupabase();
