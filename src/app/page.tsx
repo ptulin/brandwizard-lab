@@ -1065,7 +1065,12 @@ function StoragePanel({
         </div>
         <ul className="flex-1 overflow-auto space-y-2 border border-[var(--border)] rounded-lg p-3 bg-zinc-900/50">
           {filtered.length === 0 ? (
-            <li className="text-zinc-500 text-sm">No uploads yet. Add files or links from the main view.</li>
+            <li className="text-zinc-500 text-sm space-y-2">
+              <p>No uploads yet. Add files or links from the main view, or click Refresh to sync.</p>
+              <p className="text-xs">
+                <a href="/api/uploads?backfill=1&debug=1" target="_blank" rel="noopener noreferrer" className="text-[var(--burgundy-light)] hover:underline">Check what the server sees</a>
+              </p>
+            </li>
           ) : (
             filtered.map((u) => (
               <li

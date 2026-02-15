@@ -24,9 +24,18 @@ export async function GET(request: Request) {
     const hasEntryId = new Set(uploads.map((u) => u.entryId).filter(Boolean));
     for (const e of fileEntries) {
       if (hasEntryId.has(e.id)) continue;
-      const lines = (e.body ?? "").trim().split("\n").map((l) => l.trim()).filter(Boolean);
-      const filename = lines.length > 1 ? lines[0]! : "file";
-      const url = lines.length > 1 ? lines.slice(1).join("\n") : lines[0] ?? "";
+      const raw = (e.body ?? "").trim().replace(/\r\n/g, "\n");
+      const lines = raw.split("\n").map((l: string) => l.trim()).filter(Boolean);
+      let filename = "file";
+      let url = "";
+      if (lines.length >= 2) {
+        filename = lines[0]!;
+        url = lines.slice(1).join("\n");
+      } else if (lines.length === 1 && lines[0]!.startsWith("http")) {
+        url = lines[0]!;
+      } else if (lines.length === 1) {
+        url = lines[0]!;
+      }
       if (!url || !url.startsWith("http")) continue;
       const kind = url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? "screenshot" : "file";
       uploads = [
@@ -48,7 +57,8 @@ export async function GET(request: Request) {
     if (uploader) {
       uploads = uploads.filter((u) => u.uploaderNameNorm === uploader);
     }
-    return NextResponse.json({ uploads });
+    const debug = searchParams.get("debug") === "1" ? { entriesTotal: entries.length, fileEntryCount: fileEntries.length, uploadsCount: uploads.length } : undefined;
+    return NextResponse.json(debug ? { uploads, debug } : { uploads });
   } catch (e) {
     console.error("Uploads list error:", e);
     return NextResponse.json(
