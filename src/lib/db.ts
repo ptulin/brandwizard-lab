@@ -248,10 +248,10 @@ export async function backfillUploadsFromFileEntries(): Promise<number> {
   let inserted = 0;
   for (const e of fileEntries ?? []) {
     if (existingIds.has(e.id)) continue;
-    const lines = (e.body ?? "").trim().split("\n");
-    const filename = lines[0]?.trim() || "file";
-    const url = lines.slice(1).join("\n").trim();
-    if (!url) continue;
+    const lines = (e.body ?? "").trim().split("\n").map((l) => l.trim()).filter(Boolean);
+    const filename = lines.length > 1 ? lines[0]! : "file";
+    const url = lines.length > 1 ? lines.slice(1).join("\n") : lines[0] ?? "";
+    if (!url || !url.startsWith("http")) continue;
     const kind = url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? "screenshot" : "file";
     const { error: insErr } = await supabase.from("uploads").insert({
       uploader_display_name: e.author_display_name,

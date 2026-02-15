@@ -10,7 +10,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const uploader = searchParams.get("uploader") ?? undefined;
     const backfill = searchParams.get("backfill") === "1";
-    if (backfill) await db.backfillUploadsFromFileEntries();
+    if (backfill) {
+      try {
+        await db.backfillUploadsFromFileEntries();
+      } catch (err) {
+        console.error("Uploads backfill error:", err);
+      }
+    }
     const uploads = await data.getUploads(uploader);
     return NextResponse.json({ uploads });
   } catch (e) {

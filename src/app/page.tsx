@@ -87,7 +87,13 @@ export default function LabPage() {
   const loadUploads = useCallback(async () => {
     try {
       const res = await fetch("/api/uploads?backfill=1");
-      const json = (await res.json()) as { uploads?: Upload[] };
+      const json = (await res.json()) as { uploads?: Upload[]; error?: string };
+      if (!res.ok) {
+        setError(json.error ?? "Failed to load storage");
+        setUploads([]);
+        return;
+      }
+      setError(null);
       setUploads(json.uploads ?? []);
     } catch {
       setUploads([]);
