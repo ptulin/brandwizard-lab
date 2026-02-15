@@ -43,10 +43,14 @@ export async function POST(request: Request) {
     } catch (uploadRowErr) {
       console.error("Upload row (storage list) insert failed:", uploadRowErr);
     }
-    const summary = await summarizeFile(file, filename);
-    if (summary) {
-      await db.addEntry("BW", "bw", summary, "note");
+    let summary = `Attached: ${filename} — ready in Storage.`;
+    try {
+      const s = await summarizeFile(file, filename);
+      if (s) summary = s;
+    } catch {
+      // ignore
     }
+    await db.addEntry("BW", "bw", summary, "note");
     return NextResponse.json({ ...entry, summary });
   } catch (e) {
     const err = e as { message?: string; error?: string };
