@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as data from "@/lib/data";
 import * as db from "@/lib/db";
+import type { Upload } from "@/types";
 
 export async function GET(request: Request) {
   if (!db.hasSupabase()) {
@@ -17,7 +18,36 @@ export async function GET(request: Request) {
         console.error("Uploads backfill error:", err);
       }
     }
-    const uploads = await data.getUploads(uploader);
+    let uploads = await data.getUploads(uploader);
+    const entries = await db.getEntries();
+    const fileEntries = entries.filter((e) => e.type === "file");
+    const hasEntryId = new Set(uploads.map((u) => u.entryId).filter(Boolean));
+    for (const e of fileEntries) {
+      if (hasEntryId.has(e.id)) continue;
+      const lines = (e.body ?? "").trim().split("\n").map((l) => l.trim()).filter(Boolean);
+      const filename = lines.length > 1 ? lines[0]! : "file";
+      const url = lines.length > 1 ? lines.slice(1).join("\n") : lines[0] ?? "";
+      if (!url || !url.startsWith("http")) continue;
+      const kind = url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? "screenshot" : "file";
+      uploads = [
+        ...uploads,
+        {
+          id: e.id,
+          uploaderDisplayName: e.authorDisplayName,
+          uploaderNameNorm: e.authorNameNorm,
+          kind,
+          url,
+          title: null as string | null,
+          filename,
+          entryId: e.id,
+          createdAt: e.createdAt,
+        } satisfies Upload,
+      ];
+    }
+    uploads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (uploader) {
+      uploads = uploads.filter((u) => u.uploaderNameNorm === uploader);
+    }
     return NextResponse.json({ uploads });
   } catch (e) {
     console.error("Uploads list error:", e);

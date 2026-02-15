@@ -33,13 +33,17 @@ export async function POST(request: Request) {
       "file" as EntryType
     );
     const kind = file.type.startsWith("image/") ? "screenshot" : "file";
-    await db.insertUpload(
-      authorDisplayName.trim(),
-      authorNameNorm.trim(),
-      kind,
-      url,
-      { filename, entryId: entry.id }
-    );
+    try {
+      await db.insertUpload(
+        authorDisplayName.trim(),
+        authorNameNorm.trim(),
+        kind,
+        url,
+        { filename, entryId: entry.id }
+      );
+    } catch (uploadRowErr) {
+      console.error("Upload row (storage list) insert failed:", uploadRowErr);
+    }
     return NextResponse.json(entry);
   } catch (e) {
     console.error("Upload error:", e);
